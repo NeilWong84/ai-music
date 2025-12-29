@@ -13,9 +13,6 @@ dependencies:
   cupertino_icons: ^1.0.2
   audio_service: ^0.18.8
   just_audio: ^0.9.34
-  just_audio_windows: ^0.0.2  # Windows桌面支持
-  just_audio_linux: ^0.0.7  # Linux桌面支持
-  just_audio_macos: ^0.1.2  # macOS桌面支持
   audio_session: ^0.1.19  # 音频会话管理
   http: ^1.1.0
   provider: ^6.0.5
@@ -23,6 +20,11 @@ dependencies:
   path_provider: ^2.1.1
   flutter_svg: ^2.0.7
   rxdart: ^0.27.7  # 响应式编程库
+
+# 平台特定依赖将在构建时自动处理
+# Windows: just_audio_windows
+# macOS: just_audio_macos
+# Linux: just_audio_linux
 
 dev_dependencies:
   flutter_test:
