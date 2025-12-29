@@ -14,9 +14,9 @@ dependencies:
   audio_service: ^0.18.8
   just_audio: ^0.9.34
   just_audio_windows: ^0.0.2  # Windows桌面支持
-  just_audio_linux: ^0.0.4  # Linux桌面支持
-  just_audio_macos: ^0.0.4  # macOS桌面支持
-  audio_session: ^0.1.16  # 音频会话管理
+  just_audio_linux: ^0.0.7  # Linux桌面支持
+  just_audio_macos: ^0.1.2  # macOS桌面支持
+  audio_session: ^0.1.19  # 音频会话管理
   http: ^1.1.0
   provider: ^6.0.5
   shared_preferences: ^2.2.2
