@@ -49,11 +49,40 @@ lib/
 
 ## 安装和运行
 
-1. 确保已安装Flutter SDK
-2. 克隆项目
-3. 进入项目目录
-4. 运行 `flutter pub get` 安装依赖
-5. 运行 `flutter run` 启动应用
+### 快速安装（Windows）
+
+项目提供了自动化安装脚本，可帮助您快速安装依赖：
+
+- Windows批处理脚本：双击 `install_dependencies.bat`
+- PowerShell脚本：在PowerShell中运行 `install_dependencies.ps1`
+
+### 安装Flutter SDK
+
+1. 从 [Flutter官网](https://docs.flutter.dev/get-started/install/windows) 下载Windows版SDK
+2. 解压到指定目录（如 `C:\src\flutter`）
+3. 将 `C:\src\flutter\bin` 添加到系统PATH环境变量
+4. 重新打开命令行，运行 `flutter --version` 验证安装
+
+### 项目设置
+
+1. 克隆或下载项目
+2. 进入项目目录
+3. 运行 `flutter pub get` 安装依赖
+4. 启用Windows桌面支持：`flutter config --enable-windows-desktop`
+5. 运行 `flutter doctor` 检查环境配置
+
+### 运行应用
+
+- 开发模式运行：`flutter run -d windows`
+- 构建桌面应用：`flutter build windows`
+
+### 桌面端支持
+
+本项目支持Windows、macOS和Linux桌面平台：
+
+- Windows: `flutter run -d windows`
+- macOS: `flutter run -d macos`
+- Linux: `flutter run -d linux`
 
 ## 桌面端支持
 

@@ -100,6 +100,23 @@ ai-music/
 - `just_audio`: 音频播放
 - `audio_service`: 后台音频服务
 - `shared_preferences`: 本地数据存储
+- `audio_session`: 音频会话管理
+- `rxdart`: 响应式编程库
+
+### 平台特定依赖
+- `just_audio_windows`: Windows音频支持
+- `just_audio_macos`: macOS音频支持
+- `just_audio_linux`: Linux音频支持
+
+### 安装依赖
+
+在项目根目录运行：
+
+```
+flutter pub get
+```
+
+这将安装pubspec.yaml中定义的所有依赖包。
 
 ### 平台特定依赖
 - `just_audio_windows`: Windows音频支持
