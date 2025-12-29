@@ -21,10 +21,10 @@ dependencies:
   flutter_svg: ^2.0.7
   rxdart: ^0.27.7  # 响应式编程库
 
-# 平台特定依赖将在构建时自动处理
-# Windows: just_audio_windows
-# macOS: just_audio_macos
-# Linux: just_audio_linux
+  # 平台特定依赖
+  just_audio_windows: ^0.0.2  # Windows桌面支持
+  just_audio_linux: ^0.0.7   # Linux桌面支持
+  just_audio_macos: ^0.1.2   # macOS桌面支持
 
 dev_dependencies:
   flutter_test:
