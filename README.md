@@ -27,6 +27,57 @@
   - 音频波形：实时显示音频播放状态
   - 脉冲圆环：播放时的动态脉冲效果
 
+## 音乐来源 🎵
+
+应用使用多个免费音乐源，确保所有歌曲都可以真实播放：
+
+### 1️⃣ 主要音乐源：**Jamendo API**
+- ✅ **完全免费**：无需API key，公开访问
+- ✅ **真实可播放**：提供MP3直链
+- ✅ **正版授权**：Creative Commons授权音乐
+- ✅ **丰富库**：超过50万首高质量音乐
+- 🎸 **多风格**：Rock, Pop, Jazz, Electronic, Classical等
+
+**API端点**：`https://api.jamendo.com/v3.0/tracks/`
+
+### 2️⃣ 备用音乐源：**Bensound**
+- ✅ **本地离线数据**：10首精选的Bensound免费音乐
+- ✅ **高质量**：Benjamin Tissot的专业作品
+- ✅ **稳定可靠**：直接从官方CDN加载
+- 🎼 **风格**：Acoustic, Sunny, Creative Minds, Ukulele等
+
+**使用场景**：网络完全失败时的备用方案
+
+### 3️⃣ 数据加载优先级
+
+```
+缓存检查
+    ↓
+ Jamendo API（主要源）
+    ↓
+网易云音乐API（备用）
+    ↓
+Bensound 本地数据（离线）
+```
+
+### 使用示例
+
+```dart
+// 获取推荐歌曲（自动使用 Jamendo）
+final songs = await musicApi.getRecommendSongs(limit: 30);
+
+// 每首歌都包含真实的播放 URL
+for (var song in songs) {
+  print('${song.title} - ${song.artist}');
+  print('URL: ${song.url}'); // 直接可播放的 MP3 URL
+}
+```
+
+### 音乐授权说明
+
+- **Jamendo**：所有音乐都在 Creative Commons 授权下，允许个人非商业使用
+- **Bensound**：免费音乐，需要注明作者 Benjamin Tissot / Bensound.com
+
 ## 技术栈
 
 - Flutter 3.x
