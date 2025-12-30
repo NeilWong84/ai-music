@@ -146,15 +146,37 @@ class MainContent extends StatelessWidget {
                           children: [
                             ClipRRect(
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                              child: Container(
+                              child: Image.network(
+                                'https://picsum.photos/seed/favorite$index/140/100',
                                 height: 100,
                                 width: 140,
-                                color: const Color(0xFF5A5A5A),
-                                child: const Icon(
-                                  Icons.music_note,
-                                  size: 50,
-                                  color: Colors.white30,
-                                ),
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    height: 100,
+                                    width: 140,
+                                    color: const Color(0xFF5A5A5A),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 100,
+                                    width: 140,
+                                    color: const Color(0xFF5A5A5A),
+                                    child: const Icon(
+                                      Icons.music_note,
+                                      size: 50,
+                                      color: Colors.white30,
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const Padding(
@@ -197,7 +219,9 @@ class MainContent extends StatelessWidget {
               if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                 final historySongs = snapshot.data!;
                 return Column(
-                  children: historySongs.take(5).map((song) {
+                  children: historySongs.take(5).toList().asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final song = entry.value;
                     return Container(
                       height: 60,
                       margin: const EdgeInsets.only(bottom: 5),
@@ -208,16 +232,45 @@ class MainContent extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF5A5A5A),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(
-                              Icons.music_note,
-                              color: Colors.white30,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Image.network(
+                              'https://picsum.photos/seed/history$index/50/50',
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: const Color(0xFF5A5A5A),
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF5A5A5A),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white30,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -290,26 +343,123 @@ class MainContent extends StatelessWidget {
   }
 }
 
-class _BannerSection extends StatelessWidget {
+class _BannerSection extends StatefulWidget {
   const _BannerSection({Key? key}) : super(key: key);
+
+  @override
+  State<_BannerSection> createState() => _BannerSectionState();
+}
+
+class _BannerSectionState extends State<_BannerSection> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final List<String> _bannerImages = [
+    'https://picsum.photos/seed/banner1/800/300',
+    'https://picsum.photos/seed/banner2/800/300',
+    'https://picsum.photos/seed/banner3/800/300',
+    'https://picsum.photos/seed/banner4/800/300',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 自动轮播
+    Future.delayed(const Duration(seconds: 3), _autoPlay);
+  }
+
+  void _autoPlay() {
+    if (mounted) {
+      final nextPage = (_currentPage + 1) % _bannerImages.length;
+      _pageController.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+      Future.delayed(const Duration(seconds: 3), _autoPlay);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 180,
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: const Color(0xFF3A3A3A),
-      ),
-      child: const Center(
-        child: Text(
-          '轮播图区域',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentPage = index;
+              });
+            },
+            itemCount: _bannerImages.length,
+            itemBuilder: (context, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _bannerImages[index],
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: const Color(0xFF3A3A3A),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFF3A3A3A),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.white30,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ),
+          // 指示器
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                _bannerImages.length,
+                (index) => Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _currentPage == index
+                        ? Colors.white
+                        : Colors.white.withOpacity(0.4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -352,15 +502,37 @@ class _RecommendPlaylists extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                        child: Container(
-                          height: 100,
+                        child: Image.network(
+                          'https://picsum.photos/seed/playlist$index/140/100',
                           width: 140,
-                          color: const Color(0xFF5A5A5A),
-                          child: const Icon(
-                            Icons.music_note,
-                            size: 50,
-                            color: Colors.white30,
-                          ),
+                          height: 100,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              height: 100,
+                              width: 140,
+                              color: const Color(0xFF5A5A5A),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 100,
+                              width: 140,
+                              color: const Color(0xFF5A5A5A),
+                              child: const Icon(
+                                Icons.music_note,
+                                size: 50,
+                                color: Colors.white30,
+                              ),
+                            );
+                          },
                         ),
                       ),
                       Padding(
@@ -421,16 +593,45 @@ class _NewMusic extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5A5A5A),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Icon(
-                        Icons.music_note,
-                        color: Colors.white30,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.network(
+                        'https://picsum.photos/seed/song$index/50/50',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 50,
+                            height: 50,
+                            color: const Color(0xFF5A5A5A),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF5A5A5A),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Icon(
+                              Icons.music_note,
+                              color: Colors.white30,
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(width: 10),
