@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
+import 'mock_music_service.dart';
 
 /// 音乐API服务 - 提供免费的网络音源
 class MusicApiService {
@@ -86,9 +87,12 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取推荐歌曲失败: $e');
+      print('获取推荐歌曲失败，使用离线数据: $e');
     }
-    return [];
+    
+    // 网络请求失败，返回模拟数据
+    print('使用离线模拟数据');
+    return MockMusicService.getMockRecommendSongs();
   }
 
   /// 获取热门歌曲（排行榜）
@@ -259,9 +263,12 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取推荐歌单失败: $e');
+      print('获取推荐歌单失败，使用离线数据: $e');
     }
-    return [];
+    
+    // 网络请求失败，返回模拟数据
+    print('使用离线模拟歌单');
+    return MockMusicService.getMockPlaylists();
   }
 
   /// 备用方案：使用免费音乐库（Jamendo）
