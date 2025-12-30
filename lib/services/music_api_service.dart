@@ -68,7 +68,7 @@ class MusicApiService {
     return null;
   }
 
-  /// 获取推荐歌曲
+  /// 获取推荐歌曲（优先使用免费可播放的音乐）
   Future<List<Song>> getRecommendSongs({int limit = 30}) async {
     // 1. 先尝试从缓存加载
     final cachedSongs = await CacheService.getCachedRecommendSongs();
@@ -76,9 +76,20 @@ class MusicApiService {
       print('✅ 使用缓存的推荐歌曲');
       return cachedSongs;
     }
+
+    print('🎵 正在从 Jamendo 免费音乐库获取音乐...');
     
-    // 2. 缓存无效，尝试网络请求
+    // 2. 优先使用 Jamendo 免费音乐（真实可播放）
+    final jamendoSongs = await getJamendoTracks(limit: limit);
+    if (jamendoSongs.isNotEmpty) {
+      print('✅ 成功从 Jamendo 获取 ${jamendoSongs.length} 首歌曲');
+      await CacheService.cacheRecommendSongs(jamendoSongs);
+      return jamendoSongs;
+    }
+    
+    // 3. Jamendo失败，尝试网易云音乐API（可能无法播放）
     try {
+      print('🔄 尝试网易云音乐API...');
       final response = await _requestWithRetry(
         '$_baseUrl/personalized/newsong?limit=$limit',
       );
@@ -103,17 +114,18 @@ class MusicApiService {
         
         // 缓存成功的结果
         if (songs.isNotEmpty) {
+          print('✅ 从网易云获取 ${songs.length} 首歌曲（可能需要VIP）');
           await CacheService.cacheRecommendSongs(songs);
         }
         
         return songs;
       }
     } catch (e) {
-      print('获取推荐歌曲失败，使用离线数据: $e');
+      print('⚠️ 网易云API请求失败: $e');
     }
     
-    // 3. 网络请求失败，返回模拟数据
-    print('📡 使用离线模拟数据');
+    // 4. 所有网络请求失败，使用本地模拟数据（包含真实可播放URL）
+    print('💾 使用本地模拟数据（Bensound 免费音乐）');
     return MockMusicService.getMockRecommendSongs();
   }
 
@@ -342,12 +354,12 @@ class MusicApiService {
   /// 备用方案：使用免费音乐库（Jamendo）
   Future<List<Song>> getJamendoTracks({int limit = 30}) async {
     try {
-      // Jamendo 免费音乐API
+      // Jamendo 免费音乐API - 无需API key的公开接口
       final response = await http.get(
         Uri.parse(
-          'https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=$limit&include=musicinfo',
+          'https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=$limit&include=musicinfo&audiodownload=mp31',
         ),
-      );
+      ).timeout(_timeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -359,8 +371,8 @@ class MusicApiService {
             title: track['name'] ?? '未知歌曲',
             artist: track['artist_name'] ?? '未知歌手',
             album: track['album_name'] ?? '未知专辑',
-            albumArt: track['image'] ?? '',
-            url: track['audio'] ?? '',
+            albumArt: track['album_image'] ?? track['image'] ?? '',
+            url: track['audio'] ?? track['audiodownload'] ?? '',
             duration: Duration(seconds: track['duration'] ?? 0),
             releaseDate: DateTime.now(),
           );
