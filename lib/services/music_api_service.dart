@@ -44,29 +44,29 @@ class MusicApiService {
     // 1. 先尝试从缓存加载
     final cachedSongs = await CacheService.getCachedRecommendSongs();
     if (cachedSongs != null && cachedSongs.isNotEmpty) {
-      print('✅ 使用缓存的推荐歌曲');
+      AppLogger.i('✅ 使用缓存的推荐歌曲');
       return cachedSongs;
     }
 
-    print('🎵 正在从多个开源平台获取音乐...');
+    AppLogger.i('🎵 正在从多个开源平台获取音乐...');
     
     // 2. 使用混合平台获取音乐（Jamendo + Incompetech）
     final mixedSongs = await getMixedPlatformTracks(limit: limit);
     if (mixedSongs.isNotEmpty) {
-      print('✅ 成功从多个平台获取 ${mixedSongs.length} 首歌曲');
+      AppLogger.i('✅ 成功从多个平台获取 ${mixedSongs.length} 首歌曲');
       await CacheService.cacheRecommendSongs(mixedSongs);
       return mixedSongs;
     }
     
     // 3. 所有平台失败，使用本地模拟数据（包含真实可播放URL）
-    print('💾 使用本地模拟数据（Bensound 免费音乐）');
+    AppLogger.w('💾 使用本地模拟数据（Bensound 免费音乐）');
     return MockMusicService.getMockRecommendSongs();
   }
 
   /// 获取热门歌曲（使用 Jamendo 流行音乐）
   Future<List<Song>> getTopSongs({int limit = 50}) async {
     try {
-      print('🎵 获取 Jamendo 热门音乐...');
+      AppLogger.i('🎵 获取 Jamendo 热门音乐...');
       // 获取 Jamendo 流行音乐（按播放次数排序）
       final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&order=popularity_total&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
@@ -89,7 +89,7 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取热门歌曲失败: $e');
+      AppLogger.e('获取热门歌曲失败: $e');
     }
     
     // 失败时返回本地数据
@@ -105,13 +105,13 @@ class MusicApiService {
     // 1. 先尝试从缓存加载
     final cachedResults = await CacheService.getCachedSearchResults(keyword);
     if (cachedResults != null && cachedResults.isNotEmpty) {
-      print('✅ 使用缓存的搜索结果: $keyword');
+      AppLogger.i('✅ 使用缓存的搜索结果: $keyword');
       return cachedResults;
     }
     
     // 2. 使用 Jamendo 搜索
     try {
-      print('🔍 在 Jamendo 搜索: $keyword');
+      AppLogger.i('🔍 在 Jamendo 搜索: $keyword');
       final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&search=${Uri.encodeComponent(keyword)}&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
 
@@ -134,18 +134,18 @@ class MusicApiService {
         
         // 缓存成功的搜索结果
         if (songs.isNotEmpty) {
-          print('✅ 搜索到 ${songs.length} 首歌曲');
+          AppLogger.i('✅ 搜索到 ${songs.length} 首歌曲');
           await CacheService.cacheSearchResults(keyword, songs);
         }
         
         return songs;
       }
     } catch (e) {
-      print('搜索歌曲失败: $e');
+      AppLogger.e('搜索歌曲失败: $e');
     }
     
     // 3. 网络失败，尝试从模拟数据搜索
-    print('📡 使用离线数据搜索');
+    AppLogger.w('📡 使用离线数据搜索');
     return MockMusicService.searchMockSongs(keyword);
   }
 
@@ -157,7 +157,7 @@ class MusicApiService {
     // 1. 先尝试从缓存加载
     final cachedUrl = await CacheService.getCachedSongUrl(songId);
     if (cachedUrl != null && cachedUrl.isNotEmpty) {
-      print('✅ 使用缓存的歌曲URL: $songId');
+      AppLogger.i('✅ 使用缓存的歌曲URL: $songId');
       return cachedUrl;
     }
     
@@ -182,7 +182,7 @@ class MusicApiService {
         }
       }
     } catch (e) {
-      print('获取播放URL失败: $e');
+      AppLogger.e('获取播放URL失败: $e');
     }
     
     return null;
@@ -191,7 +191,7 @@ class MusicApiService {
   /// 获取歌曲详情（包括播放URL）
   Future<Song?> getSongDetail(String songId) async {
     try {
-      print('🎵 获取歌曲详情: $songId');
+      AppLogger.i('🎵 获取歌曲详情: $songId');
       final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&id=$songId&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
 
@@ -215,7 +215,7 @@ class MusicApiService {
         );
       }
     } catch (e) {
-      print('获取歌曲详情失败: $e');
+      AppLogger.e('获取歌曲详情失败: $e');
     }
     return null;
   }
@@ -223,7 +223,7 @@ class MusicApiService {
   /// 获取歌单详情（Jamendo 使用播放列表）
   Future<List<Song>> getPlaylistDetail(String playlistId) async {
     try {
-      print('🎵 获取播放列表: $playlistId');
+      AppLogger.i('🎵 获取播放列表: $playlistId');
       final url = '$_jamendoBaseUrl/playlists/tracks/?client_id=$_jamendoClientId&format=json&id=$playlistId&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
 
@@ -245,7 +245,7 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取歌单详情失败: $e');
+      AppLogger.e('获取歌单详情失败: $e');
     }
     return [];
   }
@@ -255,13 +255,13 @@ class MusicApiService {
     // 1. 先尝试从缓存加载
     final cachedPlaylists = await CacheService.getCachedRecommendPlaylists();
     if (cachedPlaylists != null && cachedPlaylists.isNotEmpty) {
-      print('✅ 使用缓存的推荐歌单');
+      AppLogger.i('✅ 使用缓存的推荐歌单');
       return cachedPlaylists;
     }
     
     // 2. 获取 Jamendo 播放列表
     try {
-      print('🎵 获取 Jamendo 推荐歌单...');
+      AppLogger.i('🎵 获取 Jamendo 推荐歌单...');
       final url = '$_jamendoBaseUrl/playlists/?client_id=$_jamendoClientId&format=json&limit=$limit&order=popularity_total';
       final response = await _requestWithTimeout(url);
 
@@ -280,18 +280,18 @@ class MusicApiService {
         
         // 缓存成功的结果
         if (playlists.isNotEmpty) {
-          print('✅ 获取 ${playlists.length} 个推荐歌单');
+          AppLogger.i('✅ 获取 ${playlists.length} 个推荐歌单');
           await CacheService.cacheRecommendPlaylists(playlists);
         }
         
         return playlists;
       }
     } catch (e) {
-      print('获取推荐歌单失败: $e');
+      AppLogger.e('获取推荐歌单失败: $e');
     }
     
     // 3. 网络请求失败，返回模拟数据
-    print('📡 使用离线模拟歌单');
+    AppLogger.w('📡 使用离线模拟歌单');
     return MockMusicService.getMockPlaylists();
   }
 
@@ -320,7 +320,7 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取Jamendo音乐失败: $e');
+      AppLogger.e('获取Jamendo音乐失败: $e');
     }
     return [];
   }
@@ -328,7 +328,7 @@ class MusicApiService {
   /// 根据流派获取音乐
   Future<List<Song>> getTracksByGenre(String genre, {int limit = 30}) async {
     try {
-      print('🎵 获取 $genre 音乐...');
+      AppLogger.i('🎵 获取 $genre 音乐...');
       final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&tags=$genre&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
 
@@ -350,7 +350,7 @@ class MusicApiService {
         }).toList();
       }
     } catch (e) {
-      print('获取流派音乐失败: $e');
+      AppLogger.e('获取流派音乐失败: $e');
     }
     return [];
   }
@@ -359,7 +359,7 @@ class MusicApiService {
   /// Kevin MacLeod 是著名的免费音乐作曲家
   Future<List<Song>> getIncompetechTracks({int limit = 30}) async {
     try {
-      print('🎵 获取 Incompetech 免费背景音乐...');
+      AppLogger.i('🎵 获取 Incompetech 免费背景音乐...');
       
       // Incompetech 没有公开API，这里提供一些热门歌曲的直链
       final incompetechSongs = [
@@ -465,17 +465,17 @@ class MusicApiService {
         ),
       ];
       
-      print('✅ 成功加载 ${incompetechSongs.length} 首 Kevin MacLeod 歌曲');
+      AppLogger.i('✅ 成功加载 ${incompetechSongs.length} 首 Kevin MacLeod 歌曲');
       return incompetechSongs.take(limit).toList();
     } catch (e) {
-      print('获取 Incompetech 音乐失败: $e');
+      AppLogger.e('获取 Incompetech 音乐失败: $e');
     }
     return [];
   }
 
   /// 获取所有平台的混合音乐
   Future<List<Song>> getMixedPlatformTracks({int limit = 50}) async {
-    print('🎵 从多个平台获取音乐...');
+    AppLogger.i('🎵 从多个平台获取音乐...');
     
     List<Song> allSongs = [];
     
@@ -483,34 +483,34 @@ class MusicApiService {
     try {
       final jamendoSongs = await getJamendoTracks(limit: 20);
       if (jamendoSongs.isNotEmpty) {
-        print('✅ Jamendo: ${jamendoSongs.length} 首');
+        AppLogger.i('✅ Jamendo: ${jamendoSongs.length} 首');
         allSongs.addAll(jamendoSongs);
       }
     } catch (e) {
-      print('⚠️ Jamendo 请求失败: $e');
+      AppLogger.w('⚠️ Jamendo 请求失败: $e');
     }
     
     // 2. 从 Incompetech 获取
     try {
       final incompetechSongs = await getIncompetechTracks(limit: 10);
       if (incompetechSongs.isNotEmpty) {
-        print('✅ Incompetech: ${incompetechSongs.length} 首');
+        AppLogger.i('✅ Incompetech: ${incompetechSongs.length} 首');
         allSongs.addAll(incompetechSongs);
       }
     } catch (e) {
-      print('⚠️ Incompetech 加载失败: $e');
+      AppLogger.w('⚠️ Incompetech 加载失败: $e');
     }
     
     // 3. 如果所有平台都失败，使用 Bensound 本地数据
     if (allSongs.isEmpty) {
-      print('💾 使用 Bensound 本地数据');
+      AppLogger.w('💾 使用 Bensound 本地数据');
       allSongs = MockMusicService.getMockRecommendSongs();
     }
     
     // 4. 打乱顺序，提供多样化体验
     allSongs.shuffle();
     
-    print('✅ 总计获取 ${allSongs.length} 首歌曲');
+    AppLogger.i('✅ 总计获取 ${allSongs.length} 首歌曲');
     return allSongs.take(limit).toList();
   }
 
@@ -528,7 +528,7 @@ class MusicApiService {
       case 'all':
         return await getMixedPlatformTracks(limit: limit);
       default:
-        print('⚠️ 未知平台: $platform，使用 Jamendo');
+        AppLogger.w('⚠️ 未知平台: $platform，使用 Jamendo');
         return await getJamendoTracks(limit: limit);
     }
   }

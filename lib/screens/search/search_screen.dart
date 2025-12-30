@@ -4,6 +4,7 @@ import '../../models/song.dart';
 import '../../services/playlist_service.dart';
 import '../../services/music_api_service.dart';
 import '../../widgets/song_item.dart';
+import '../../utils/logger.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);
@@ -46,7 +47,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _isSearching = false;
       });
     } catch (e) {
-      print('搜索失败: $e');
+      AppLogger.e('搜索失败', e);
       setState(() {
         _searchResults = [];
         _isSearching = false;

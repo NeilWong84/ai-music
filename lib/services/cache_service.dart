@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
+import '../utils/logger.dart';
 
 /// 本地缓存服务 - 用于缓存API数据，减少网络请求
 class CacheService {
@@ -49,9 +50,9 @@ class CacheService {
       
       await prefs.setString(_cacheKeyRecommendSongs, json.encode(jsonList));
       await _saveCacheTime(_cacheKeyRecommendSongs);
-      print('已缓存推荐歌曲: ${songs.length}首');
+      AppLogger.d('已缓存推荐歌曲: ${songs.length}首');
     } catch (e) {
-      print('缓存推荐歌曲失败: $e');
+      AppLogger.e('缓存推荐歌曲失败: $e');
     }
   }
   
@@ -59,7 +60,7 @@ class CacheService {
   static Future<List<Song>?> getCachedRecommendSongs() async {
     try {
       if (!await _isCacheValid(_cacheKeyRecommendSongs)) {
-        print('推荐歌曲缓存已过期');
+        AppLogger.d('推荐歌曲缓存已过期');
         return null;
       }
       
@@ -80,10 +81,10 @@ class CacheService {
         releaseDate: DateTime.now(),
       )).toList();
       
-      print('从缓存加载推荐歌曲: ${songs.length}首');
+      AppLogger.d('从缓存加载推荐歌曲: ${songs.length}首');
       return songs;
     } catch (e) {
-      print('获取缓存推荐歌曲失败: $e');
+      AppLogger.e('获取缓存推荐歌曲失败: $e');
       return null;
     }
   }
@@ -94,9 +95,9 @@ class CacheService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKeyRecommendPlaylists, json.encode(playlists));
       await _saveCacheTime(_cacheKeyRecommendPlaylists);
-      print('已缓存推荐歌单: ${playlists.length}个');
+      AppLogger.d('已缓存推荐歌单: ${playlists.length}个');
     } catch (e) {
-      print('缓存推荐歌单失败: $e');
+      AppLogger.e('缓存推荐歌单失败: $e');
     }
   }
   
@@ -104,7 +105,7 @@ class CacheService {
   static Future<List<Map<String, dynamic>>?> getCachedRecommendPlaylists() async {
     try {
       if (!await _isCacheValid(_cacheKeyRecommendPlaylists)) {
-        print('推荐歌单缓存已过期');
+        AppLogger.d('推荐歌单缓存已过期');
         return null;
       }
       
@@ -123,10 +124,10 @@ class CacheService {
         };
       }).toList();
       
-      print('从缓存加载推荐歌单: ${playlists.length}个');
+      AppLogger.d('从缓存加载推荐歌单: ${playlists.length}个');
       return playlists;
     } catch (e) {
-      print('获取缓存推荐歌单失败: $e');
+      AppLogger.e('获取缓存推荐歌单失败: $e');
       return null;
     }
   }
@@ -149,9 +150,9 @@ class CacheService {
       
       await prefs.setString(cacheKey, json.encode(jsonList));
       await _saveCacheTime(cacheKey);
-      print('已缓存搜索结果 "$keyword": ${songs.length}首');
+      AppLogger.d('已缓存搜索结果 "$keyword": ${songs.length}首');
     } catch (e) {
-      print('缓存搜索结果失败: $e');
+      AppLogger.e('缓存搜索结果失败: $e');
     }
   }
   
@@ -161,7 +162,7 @@ class CacheService {
       final cacheKey = '$_cacheKeySearchPrefix${keyword.toLowerCase()}';
       
       if (!await _isCacheValid(cacheKey)) {
-        print('搜索结果缓存已过期: $keyword');
+        AppLogger.d('搜索结果缓存已过期: $keyword');
         return null;
       }
       
@@ -182,10 +183,10 @@ class CacheService {
         releaseDate: DateTime.now(),
       )).toList();
       
-      print('从缓存加载搜索结果 "$keyword": ${songs.length}首');
+      AppLogger.d('从缓存加载搜索结果 "$keyword": ${songs.length}首');
       return songs;
     } catch (e) {
-      print('获取缓存搜索结果失败: $e');
+      AppLogger.e('获取缓存搜索结果失败: $e');
       return null;
     }
   }
@@ -197,9 +198,9 @@ class CacheService {
       final cacheKey = 'song_url_$songId';
       await prefs.setString(cacheKey, url);
       await _saveCacheTime(cacheKey);
-      print('已缓存歌曲URL: $songId');
+      AppLogger.d('已缓存歌曲URL: $songId');
     } catch (e) {
-      print('缓存歌曲URL失败: $e');
+      AppLogger.e('缓存歌曲URL失败: $e');
     }
   }
   
@@ -216,11 +217,11 @@ class CacheService {
       final url = prefs.getString(cacheKey);
       
       if (url != null) {
-        print('从缓存加载歌曲URL: $songId');
+        AppLogger.d('从缓存加载歌曲URL: $songId');
       }
       return url;
     } catch (e) {
-      print('获取缓存歌曲URL失败: $e');
+      AppLogger.e('获取缓存歌曲URL失败: $e');
       return null;
     }
   }
@@ -237,9 +238,9 @@ class CacheService {
         }
       }
       
-      print('已清除所有缓存');
+      AppLogger.i('已清除所有缓存');
     } catch (e) {
-      print('清除缓存失败: $e');
+      AppLogger.e('清除缓存失败: $e');
     }
   }
   
@@ -268,7 +269,7 @@ class CacheService {
         'sizeKB': (totalSize / 1024).toStringAsFixed(2),
       };
     } catch (e) {
-      print('获取缓存统计失败: $e');
+      AppLogger.e('获取缓存统计失败: $e');
       return {'count': 0, 'size': 0, 'sizeKB': '0'};
     }
   }

@@ -5,6 +5,7 @@ import '../services/playlist_service.dart';
 import '../services/music_api_service.dart';
 import '../services/music_player.dart';
 import 'animations/loading_animation.dart';
+import '../utils/logger.dart';
 
 class MainContent extends StatelessWidget {
   final int index;
@@ -496,7 +497,7 @@ class _RecommendPlaylistsState extends State<_RecommendPlaylists> {
         });
       }
     } catch (e) {
-      print('加载推荐歌单失败: $e');
+      AppLogger.e('加载推荐歌单失败', e);
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -669,7 +670,7 @@ class _NewMusicState extends State<_NewMusic> {
         });
       }
     } catch (e) {
-      print('加载最新音乐失败: $e');
+      AppLogger.e('加载最新音乐失败', e);
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -697,7 +698,7 @@ class _NewMusicState extends State<_NewMusic> {
         }
       }
     } catch (e) {
-      print('播放歌曲失败: $e');
+      AppLogger.e('播放歌曲失败', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('播放失败: $e')),

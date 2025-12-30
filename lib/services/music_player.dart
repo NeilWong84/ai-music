@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import '../models/song.dart';
+import '../utils/logger.dart';
 
 class MusicPlayer extends ChangeNotifier {
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -133,7 +134,7 @@ class MusicPlayer extends ChangeNotifier {
         _currentSongSubject.add(song);
         notifyListeners();
       } catch (e) {
-        print('加载歌曲失败: $e');
+        AppLogger.e('加载歌曲失败', e);
       }
     }
   }
