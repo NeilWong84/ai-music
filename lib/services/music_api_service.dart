@@ -3,14 +3,21 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import 'mock_music_service.dart';
+import 'cache_service.dart';
 
 /// 音乐API服务 - 提供免费的网络音源
 class MusicApiService {
   // 使用网易云音乐的公开API（非官方）- 多个备用地址
   static const List<String> _baseUrls = [
+    // 网易云API备用地址
     'https://netease-cloud-music-api-jade-sigma.vercel.app',
     'https://netease-api.vercel.app',
     'https://music-api.heheda.top',
+    'https://netease-cloud-music-api-ochre.vercel.app',
+    'https://netease-cloud-music-api-rouge.vercel.app',
+    // 国内备用地址（更稳定）
+    'https://autumnfish.cn',
+    'https://music.qier222.com',
   ];
   
   // 当前使用的API索引
@@ -19,8 +26,8 @@ class MusicApiService {
   // 获取当前BASE URL
   String get _baseUrl => _baseUrls[_currentUrlIndex];
   
-  // 请求超时设置
-  static const Duration _timeout = Duration(seconds: 10);
+  // 请求超时设置（缩短到5秒，快速失败快速切换）
+  static const Duration _timeout = Duration(seconds: 5);
   
   // 备用：使用QQ音乐API
   static const String _qqMusicBase = 'https://api.qq.jsososo.com';
@@ -63,6 +70,14 @@ class MusicApiService {
 
   /// 获取推荐歌曲
   Future<List<Song>> getRecommendSongs({int limit = 30}) async {
+    // 1. 先尝试从缓存加载
+    final cachedSongs = await CacheService.getCachedRecommendSongs();
+    if (cachedSongs != null && cachedSongs.isNotEmpty) {
+      print('✅ 使用缓存的推荐歌曲');
+      return cachedSongs;
+    }
+    
+    // 2. 缓存无效，尝试网络请求
     try {
       final response = await _requestWithRetry(
         '$_baseUrl/personalized/newsong?limit=$limit',
@@ -72,7 +87,7 @@ class MusicApiService {
         final data = json.decode(response.body);
         final List result = data['result'] ?? [];
         
-        return result.map((item) {
+        final songs = result.map((item) {
           final song = item['song'];
           return Song(
             id: song['id'].toString(),
@@ -85,13 +100,20 @@ class MusicApiService {
             releaseDate: DateTime.now(),
           );
         }).toList();
+        
+        // 缓存成功的结果
+        if (songs.isNotEmpty) {
+          await CacheService.cacheRecommendSongs(songs);
+        }
+        
+        return songs;
       }
     } catch (e) {
       print('获取推荐歌曲失败，使用离线数据: $e');
     }
     
-    // 网络请求失败，返回模拟数据
-    print('使用离线模拟数据');
+    // 3. 网络请求失败，返回模拟数据
+    print('📡 使用离线模拟数据');
     return MockMusicService.getMockRecommendSongs();
   }
 
@@ -128,6 +150,14 @@ class MusicApiService {
 
   /// 搜索歌曲
   Future<List<Song>> searchSongs(String keyword, {int limit = 30}) async {
+    // 1. 先尝试从缓存加载
+    final cachedResults = await CacheService.getCachedSearchResults(keyword);
+    if (cachedResults != null && cachedResults.isNotEmpty) {
+      print('✅ 使用缓存的搜索结果: $keyword');
+      return cachedResults;
+    }
+    
+    // 2. 缓存无效，尝试网络请求
     try {
       final response = await _requestWithRetry(
         '$_baseUrl/search?keywords=${Uri.encodeComponent(keyword)}&limit=$limit',
@@ -137,7 +167,7 @@ class MusicApiService {
         final data = json.decode(response.body);
         final List songs = data['result']?['songs'] ?? [];
         
-        return songs.map((song) {
+        final results = songs.map((song) {
           return Song(
             id: song['id'].toString(),
             title: song['name'] ?? '未知歌曲',
@@ -149,15 +179,33 @@ class MusicApiService {
             releaseDate: DateTime.now(),
           );
         }).toList();
+        
+        // 缓存成功的搜索结果
+        if (results.isNotEmpty) {
+          await CacheService.cacheSearchResults(keyword, results);
+        }
+        
+        return results;
       }
     } catch (e) {
       print('搜索歌曲失败: $e');
     }
-    return [];
+    
+    // 3. 网络失败，尝试从模拟数据搜索
+    print('📡 使用离线数据搜索');
+    return MockMusicService.searchMockSongs(keyword);
   }
 
   /// 获取歌曲播放URL
   Future<String?> getSongUrl(String songId) async {
+    // 1. 先尝试从缓存加载
+    final cachedUrl = await CacheService.getCachedSongUrl(songId);
+    if (cachedUrl != null && cachedUrl.isNotEmpty) {
+      print('✅ 使用缓存的歌曲URL: $songId');
+      return cachedUrl;
+    }
+    
+    // 2. 缓存无效，尝试网络请求
     try {
       final response = await _requestWithRetry(
         '$_baseUrl/song/url?id=$songId',
@@ -167,7 +215,12 @@ class MusicApiService {
         final data = json.decode(response.body);
         final List urls = data['data'] ?? [];
         if (urls.isNotEmpty) {
-          return urls[0]['url'];
+          final url = urls[0]['url'];
+          // 缓存播放URL
+          if (url != null && url.isNotEmpty) {
+            await CacheService.cacheSongUrl(songId, url);
+          }
+          return url;
         }
       }
     } catch (e) {
@@ -244,6 +297,14 @@ class MusicApiService {
 
   /// 获取推荐歌单
   Future<List<Map<String, dynamic>>> getRecommendPlaylists({int limit = 10}) async {
+    // 1. 先尝试从缓存加载
+    final cachedPlaylists = await CacheService.getCachedRecommendPlaylists();
+    if (cachedPlaylists != null && cachedPlaylists.isNotEmpty) {
+      print('✅ 使用缓存的推荐歌单');
+      return cachedPlaylists;
+    }
+    
+    // 2. 缓存无效，尝试网络请求
     try {
       final response = await _requestWithRetry(
         '$_baseUrl/personalized?limit=$limit',
@@ -253,7 +314,7 @@ class MusicApiService {
         final data = json.decode(response.body);
         final List result = data['result'] ?? [];
         
-        return result.map((item) {
+        final playlists = result.map((item) {
           return {
             'id': item['id'].toString(),
             'name': item['name'] ?? '未知歌单',
@@ -261,13 +322,20 @@ class MusicApiService {
             'playCount': item['playCount'] ?? 0,
           };
         }).toList();
+        
+        // 缓存成功的结果
+        if (playlists.isNotEmpty) {
+          await CacheService.cacheRecommendPlaylists(playlists);
+        }
+        
+        return playlists;
       }
     } catch (e) {
       print('获取推荐歌单失败，使用离线数据: $e');
     }
     
-    // 网络请求失败，返回模拟数据
-    print('使用离线模拟歌单');
+    // 3. 网络请求失败，返回模拟数据
+    print('📡 使用离线模拟歌单');
     return MockMusicService.getMockPlaylists();
   }
 
