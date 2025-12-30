@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/song.dart';
 import '../../services/playlist_service.dart';
+import '../../services/music_api_service.dart';
 import '../../widgets/song_item.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final MusicApiService _apiService = MusicApiService();
   List<Song> _searchResults = [];
   bool _isSearching = false;
 
@@ -35,54 +37,27 @@ class _SearchScreenState extends State<SearchScreen> {
       _isSearching = true;
     });
 
-    // 模拟搜索延迟
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // 这里应该调用实际的搜索服务
-    // 为了演示，我们创建一些模拟数据
-    final playlistService = Provider.of<PlaylistService>(context, listen: false);
-    final results = await playlistService.searchSongs(query);
-
-    // 临时模拟数据
-    if (query.toLowerCase() != 'test') {
-      results.addAll([
-        Song(
-          id: '1',
-          title: '测试歌曲 1',
-          artist: '测试歌手',
-          album: '测试专辑',
-          albumArt: '',
-          url: '',
-          duration: const Duration(minutes: 3, seconds: 30),
-          releaseDate: DateTime.now(),
-        ),
-        Song(
-          id: '2',
-          title: '测试歌曲 2',
-          artist: '测试歌手 2',
-          album: '测试专辑 2',
-          albumArt: '',
-          url: '',
-          duration: const Duration(minutes: 4, seconds: 15),
-          releaseDate: DateTime.now(),
-        ),
-        Song(
-          id: '3',
-          title: '$query 相关歌曲',
-          artist: 'Various Artists',
-          album: 'Compilation',
-          albumArt: '',
-          url: '',
-          duration: const Duration(minutes: 3, seconds: 45),
-          releaseDate: DateTime.now(),
-        ),
-      ]);
+    try {
+      // 使用真实API搜索
+      final results = await _apiService.searchSongs(query, limit: 50);
+      
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+      });
+    } catch (e) {
+      print('搜索失败: $e');
+      setState(() {
+        _searchResults = [];
+        _isSearching = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('搜索失败: $e')),
+        );
+      }
     }
-
-    setState(() {
-      _searchResults = results;
-      _isSearching = false;
-    });
   }
 
   @override
