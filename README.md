@@ -17,6 +17,9 @@
 - 🖼️ **动态图片加载**：所有图片占位符都使用在线随机图片
 - ⚡ **流畅加载体验**：图片加载过程显示加载指示器
 - 🛡️ **错误处理**：图片加载失败时显示默认图标
+- 🎵 **网络音源**：集成免费音乐API，提供真实的在线音乐播放
+- 🔍 **实时搜索**：支持搜索网络音乐库中的歌曲
+- 📻 **推荐系统**：获取最新音乐和热门歌单推荐
 
 ## 技术栈
 
@@ -98,12 +101,59 @@ lib/
 
 ## 开发说明
 
+### 音乐API服务
+
+项目集成了多个免费音乐API，提供在线音乐播放功能：
+
+1. **网易云音乐API** （默认）
+   - 基于URL: `https://netease-cloud-music-api-rust-psi.vercel.app`
+   - 支持功能：
+     - 推荐歌曲：`/personalized/newsong`
+     - 热门排行：`/top/list`
+     - 歌曲搜索：`/search`
+     - 播放URL：`/song/url`
+     - 歌单详情：`/playlist/detail`
+     - 推荐歌单：`/personalized`
+
+2. **Jamendo API** （备用）
+   - 提供免费CC授权音乐
+   - 支持免审查商用
+   - API: `https://api.jamendo.com/v3.0/tracks/`
+
+### 使用示例
+
+```dart
+// 创建API服务实例
+final apiService = MusicApiService();
+
+// 获取推荐歌曲
+final songs = await apiService.getRecommendSongs(limit: 30);
+
+// 搜索歌曲
+final results = await apiService.searchSongs('周杰伦', limit: 50);
+
+// 获取歌曲详情和播放URL
+final songDetail = await apiService.getSongDetail(songId);
+
+// 获取热门排行榜
+final topSongs = await apiService.getTopSongs(limit: 50);
+
+// 获取推荐歌单
+final playlists = await apiService.getRecommendPlaylists(limit: 10);
+```
+
+### 注意事项
+
+- 本项目使用的API仅供学习和测试使用
+- 商业使用请遵守相关API的使用协议
+- 建议使用自己的API服务或正版音乐平台API
+- API请求可能因网络问题失败，已做错误处理
+
 此项目为音乐播放器的框架实现，实际使用时需要：
 
-1. 集成音乐API服务
-2. 添加真实的音乐资源
-3. 实现用户认证系统
-4. 根据需要调整UI主题和样式
+1. 集成音乐API服务 ✅ （已完成）
+2. 根据需要调整UI主题和样式
+3. 实现用户认证系统（可选）
 
 ## 许可证
 
