@@ -5,11 +5,18 @@ import '../models/song.dart';
 import 'mock_music_service.dart';
 import 'cache_service.dart';
 
-/// 音乐API服务 - 使用 Jamendo 免费音乐库
+/// 音乐API服务 - 使用多个免费开源音乐平台
 class MusicApiService {
   // Jamendo API 配置
   static const String _jamendoClientId = '56d30c95';
   static const String _jamendoBaseUrl = 'https://api.jamendo.com/v3.0';
+  
+  // Free Music Archive (FMA) 配置
+  static const String _fmaApiKey = 'YOUR_FMA_API_KEY'; // 需要注册获取
+  static const String _fmaBaseUrl = 'https://freemusicarchive.org/api';
+  
+  // Incompetech (Kevin MacLeod) 音乐库
+  // 注意：Incompetech 没有公开API，我们使用预定义的歌曲列表
   
   // 请求超时设置
   static const Duration _timeout = Duration(seconds: 10);
@@ -31,7 +38,7 @@ class MusicApiService {
     return null;
   }
 
-  /// 获取推荐歌曲（使用 Jamendo）
+  /// 获取推荐歌曲（使用多个开源平台）
   Future<List<Song>> getRecommendSongs({int limit = 30}) async {
     // 1. 先尝试从缓存加载
     final cachedSongs = await CacheService.getCachedRecommendSongs();
@@ -40,17 +47,17 @@ class MusicApiService {
       return cachedSongs;
     }
 
-    print('🎵 正在从 Jamendo 免费音乐库获取音乐...');
+    print('🎵 正在从多个开源平台获取音乐...');
     
-    // 2. 使用 Jamendo 免费音乐（真实可播放）
-    final jamendoSongs = await getJamendoTracks(limit: limit);
-    if (jamendoSongs.isNotEmpty) {
-      print('✅ 成功从 Jamendo 获取 ${jamendoSongs.length} 首歌曲');
-      await CacheService.cacheRecommendSongs(jamendoSongs);
-      return jamendoSongs;
+    // 2. 使用混合平台获取音乐（Jamendo + Incompetech）
+    final mixedSongs = await getMixedPlatformTracks(limit: limit);
+    if (mixedSongs.isNotEmpty) {
+      print('✅ 成功从多个平台获取 ${mixedSongs.length} 首歌曲');
+      await CacheService.cacheRecommendSongs(mixedSongs);
+      return mixedSongs;
     }
     
-    // 3. Jamendo 失败，使用本地模拟数据（包含真实可播放URL）
+    // 3. 所有平台失败，使用本地模拟数据（包含真实可播放URL）
     print('💾 使用本地模拟数据（Bensound 免费音乐）');
     return MockMusicService.getMockRecommendSongs();
   }
@@ -345,5 +352,183 @@ class MusicApiService {
       print('获取流派音乐失败: $e');
     }
     return [];
+  }
+
+  /// 获取 Incompetech (Kevin MacLeod) 免费背景音乐
+  /// Kevin MacLeod 是著名的免费音乐作曲家
+  Future<List<Song>> getIncompetechTracks({int limit = 30}) async {
+    try {
+      print('🎵 获取 Incompetech 免费背景音乐...');
+      
+      // Incompetech 没有公开API，这里提供一些热门歌曲的直链
+      final incompetechSongs = [
+        Song(
+          id: 'incompetech_1',
+          title: 'Wallpaper',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech1/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wallpaper.mp3',
+          duration: const Duration(minutes: 3, seconds: 22),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_2',
+          title: 'Carefree',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech2/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3',
+          duration: const Duration(minutes: 1, seconds: 16),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_3',
+          title: 'Cipher',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech3/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Cipher.mp3',
+          duration: const Duration(minutes: 2, seconds: 17),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_4',
+          title: 'Fluffing a Duck',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech4/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3',
+          duration: const Duration(minutes: 1, seconds: 47),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_5',
+          title: 'Monkeys Spinning Monkeys',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech5/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Monkeys%20Spinning%20Monkeys.mp3',
+          duration: const Duration(minutes: 1, seconds: 49),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_6',
+          title: 'Sneaky Snitch',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech6/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3',
+          duration: const Duration(minutes: 1, seconds: 56),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_7',
+          title: 'Breaktime - Silent Film Light',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech7/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Breaktime%20-%20Silent%20Film%20Light.mp3',
+          duration: const Duration(minutes: 1, seconds: 42),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_8',
+          title: 'Pamgaea',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech8/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Pamgaea.mp3',
+          duration: const Duration(minutes: 3, seconds: 8),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_9',
+          title: 'Take a Chance',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech9/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Take%20a%20Chance.mp3',
+          duration: const Duration(minutes: 2, seconds: 55),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+        Song(
+          id: 'incompetech_10',
+          title: 'Ultralounge',
+          artist: 'Kevin MacLeod',
+          album: 'Incompetech Music',
+          albumArt: 'https://picsum.photos/seed/incompetech10/300/300',
+          url: 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ultralounge.mp3',
+          duration: const Duration(minutes: 3, seconds: 5),
+          releaseDate: DateTime(2010, 1, 1),
+        ),
+      ];
+      
+      print('✅ 成功加载 ${incompetechSongs.length} 首 Kevin MacLeod 歌曲');
+      return incompetechSongs.take(limit).toList();
+    } catch (e) {
+      print('获取 Incompetech 音乐失败: $e');
+    }
+    return [];
+  }
+
+  /// 获取所有平台的混合音乐
+  Future<List<Song>> getMixedPlatformTracks({int limit = 50}) async {
+    print('🎵 从多个平台获取音乐...');
+    
+    List<Song> allSongs = [];
+    
+    // 1. 从 Jamendo 获取
+    try {
+      final jamendoSongs = await getJamendoTracks(limit: 20);
+      if (jamendoSongs.isNotEmpty) {
+        print('✅ Jamendo: ${jamendoSongs.length} 首');
+        allSongs.addAll(jamendoSongs);
+      }
+    } catch (e) {
+      print('⚠️ Jamendo 请求失败: $e');
+    }
+    
+    // 2. 从 Incompetech 获取
+    try {
+      final incompetechSongs = await getIncompetechTracks(limit: 10);
+      if (incompetechSongs.isNotEmpty) {
+        print('✅ Incompetech: ${incompetechSongs.length} 首');
+        allSongs.addAll(incompetechSongs);
+      }
+    } catch (e) {
+      print('⚠️ Incompetech 加载失败: $e');
+    }
+    
+    // 3. 如果所有平台都失败，使用 Bensound 本地数据
+    if (allSongs.isEmpty) {
+      print('💾 使用 Bensound 本地数据');
+      allSongs = MockMusicService.getMockRecommendSongs();
+    }
+    
+    // 4. 打乱顺序，提供多样化体验
+    allSongs.shuffle();
+    
+    print('✅ 总计获取 ${allSongs.length} 首歌曲');
+    return allSongs.take(limit).toList();
+  }
+
+  /// 根据平台获取音乐
+  Future<List<Song>> getTracksByPlatform(String platform, {int limit = 30}) async {
+    switch (platform.toLowerCase()) {
+      case 'jamendo':
+        return await getJamendoTracks(limit: limit);
+      case 'incompetech':
+      case 'kevin macleod':
+        return await getIncompetechTracks(limit: limit);
+      case 'bensound':
+        return MockMusicService.getMockRecommendSongs();
+      case 'mixed':
+      case 'all':
+        return await getMixedPlatformTracks(limit: limit);
+      default:
+        print('⚠️ 未知平台: $platform，使用 Jamendo');
+        return await getJamendoTracks(limit: limit);
+    }
   }
 }
