@@ -5,70 +5,33 @@ import '../models/song.dart';
 import 'mock_music_service.dart';
 import 'cache_service.dart';
 
-/// 音乐API服务 - 提供免费的网络音源
+/// 音乐API服务 - 使用 Jamendo 免费音乐库
 class MusicApiService {
-  // 使用网易云音乐的公开API（非官方）- 多个备用地址
-  static const List<String> _baseUrls = [
-    // 网易云API备用地址
-    'https://netease-cloud-music-api-jade-sigma.vercel.app',
-    'https://netease-api.vercel.app',
-    'https://music-api.heheda.top',
-    'https://netease-cloud-music-api-ochre.vercel.app',
-    'https://netease-cloud-music-api-rouge.vercel.app',
-    // 国内备用地址（更稳定）
-    'https://autumnfish.cn',
-    'https://music.qier222.com',
-  ];
+  // Jamendo API 配置
+  static const String _jamendoClientId = '56d30c95';
+  static const String _jamendoBaseUrl = 'https://api.jamendo.com/v3.0';
   
-  // 当前使用的API索引
-  int _currentUrlIndex = 0;
+  // 请求超时设置
+  static const Duration _timeout = Duration(seconds: 10);
   
-  // 获取当前BASE URL
-  String get _baseUrl => _baseUrls[_currentUrlIndex];
-  
-  // 请求超时设置（缩短到5秒，快速失败快速切换）
-  static const Duration _timeout = Duration(seconds: 5);
-  
-  // 备用：使用QQ音乐API
-  static const String _qqMusicBase = 'https://api.qq.jsososo.com';
-  
-  /// 切换到下一个API地址
-  void _switchToNextUrl() {
-    _currentUrlIndex = (_currentUrlIndex + 1) % _baseUrls.length;
-    print('切换API地址到: $_baseUrl');
-  }
-  
-  /// 带超时和重试的HTTP请求
-  Future<http.Response?> _requestWithRetry(String url, {int maxRetries = 2}) async {
-    for (int i = 0; i < maxRetries; i++) {
-      try {
-        final response = await http.get(
-          Uri.parse(url),
-        ).timeout(_timeout);
-        
-        if (response.statusCode == 200) {
-          return response;
-        } else {
-          print('请求失败，状态码: ${response.statusCode}');
-        }
-      } on TimeoutException catch (e) {
-        print('请求超时 (尝试 ${i + 1}/$maxRetries): $e');
-        if (i < maxRetries - 1) {
-          _switchToNextUrl();
-          await Future.delayed(Duration(milliseconds: 500));
-        }
-      } catch (e) {
-        print('请求异常 (尝试 ${i + 1}/$maxRetries): $e');
-        if (i < maxRetries - 1) {
-          _switchToNextUrl();
-          await Future.delayed(Duration(milliseconds: 500));
-        }
+  /// 带超时的HTTP请求
+  Future<http.Response?> _requestWithTimeout(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(_timeout);
+      if (response.statusCode == 200) {
+        return response;
+      } else {
+        print('请求失败，状态码: ${response.statusCode}');
       }
+    } on TimeoutException catch (e) {
+      print('请求超时: $e');
+    } catch (e) {
+      print('请求异常: $e');
     }
     return null;
   }
 
-  /// 获取推荐歌曲（优先使用免费可播放的音乐）
+  /// 获取推荐歌曲（使用 Jamendo）
   Future<List<Song>> getRecommendSongs({int limit = 30}) async {
     // 1. 先尝试从缓存加载
     final cachedSongs = await CacheService.getCachedRecommendSongs();
@@ -79,7 +42,7 @@ class MusicApiService {
 
     print('🎵 正在从 Jamendo 免费音乐库获取音乐...');
     
-    // 2. 优先使用 Jamendo 免费音乐（真实可播放）
+    // 2. 使用 Jamendo 免费音乐（真实可播放）
     final jamendoSongs = await getJamendoTracks(limit: limit);
     if (jamendoSongs.isNotEmpty) {
       print('✅ 成功从 Jamendo 获取 ${jamendoSongs.length} 首歌曲');
@@ -87,69 +50,32 @@ class MusicApiService {
       return jamendoSongs;
     }
     
-    // 3. Jamendo失败，尝试网易云音乐API（可能无法播放）
-    try {
-      print('🔄 尝试网易云音乐API...');
-      final response = await _requestWithRetry(
-        '$_baseUrl/personalized/newsong?limit=$limit',
-      );
-
-      if (response != null && response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List result = data['result'] ?? [];
-        
-        final songs = result.map((item) {
-          final song = item['song'];
-          return Song(
-            id: song['id'].toString(),
-            title: song['name'] ?? '未知歌曲',
-            artist: (song['artists'] as List?)?.map((a) => a['name']).join('/') ?? '未知歌手',
-            album: song['album']?['name'] ?? '未知专辑',
-            albumArt: song['album']?['picUrl'] ?? '',
-            url: '', // 需要单独获取播放URL
-            duration: Duration(milliseconds: song['duration'] ?? 0),
-            releaseDate: DateTime.now(),
-          );
-        }).toList();
-        
-        // 缓存成功的结果
-        if (songs.isNotEmpty) {
-          print('✅ 从网易云获取 ${songs.length} 首歌曲（可能需要VIP）');
-          await CacheService.cacheRecommendSongs(songs);
-        }
-        
-        return songs;
-      }
-    } catch (e) {
-      print('⚠️ 网易云API请求失败: $e');
-    }
-    
-    // 4. 所有网络请求失败，使用本地模拟数据（包含真实可播放URL）
+    // 3. Jamendo 失败，使用本地模拟数据（包含真实可播放URL）
     print('💾 使用本地模拟数据（Bensound 免费音乐）');
     return MockMusicService.getMockRecommendSongs();
   }
 
-  /// 获取热门歌曲（排行榜）
+  /// 获取热门歌曲（使用 Jamendo 流行音乐）
   Future<List<Song>> getTopSongs({int limit = 50}) async {
     try {
-      // 获取飙升榜
-      final response = await _requestWithRetry(
-        '$_baseUrl/top/list?idx=3',
-      );
+      print('🎵 获取 Jamendo 热门音乐...');
+      // 获取 Jamendo 流行音乐（按播放次数排序）
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&order=popularity_total&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
 
       if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List tracks = data['playlist']?['tracks'] ?? [];
+        final List results = data['results'] ?? [];
         
-        return tracks.take(limit).map((track) {
+        return results.map((track) {
           return Song(
             id: track['id'].toString(),
             title: track['name'] ?? '未知歌曲',
-            artist: (track['ar'] as List?)?.map((a) => a['name']).join('/') ?? '未知歌手',
-            album: track['al']?['name'] ?? '未知专辑',
-            albumArt: track['al']?['picUrl'] ?? '',
-            url: '', // 需要单独获取播放URL
-            duration: Duration(milliseconds: track['dt'] ?? 0),
+            artist: track['artist_name'] ?? '未知歌手',
+            album: track['album_name'] ?? '未知专辑',
+            albumArt: track['album_image'] ?? track['image'] ?? '',
+            url: track['audio'] ?? track['audiodownload'] ?? '',
+            duration: Duration(seconds: track['duration'] ?? 0),
             releaseDate: DateTime.now(),
           );
         }).toList();
@@ -157,11 +83,17 @@ class MusicApiService {
     } catch (e) {
       print('获取热门歌曲失败: $e');
     }
-    return [];
+    
+    // 失败时返回本地数据
+    return MockMusicService.getMockRecommendSongs();
   }
 
-  /// 搜索歌曲
+  /// 搜索歌曲（使用 Jamendo）
   Future<List<Song>> searchSongs(String keyword, {int limit = 30}) async {
+    if (keyword.trim().isEmpty) {
+      return [];
+    }
+    
     // 1. 先尝试从缓存加载
     final cachedResults = await CacheService.getCachedSearchResults(keyword);
     if (cachedResults != null && cachedResults.isNotEmpty) {
@@ -169,35 +101,36 @@ class MusicApiService {
       return cachedResults;
     }
     
-    // 2. 缓存无效，尝试网络请求
+    // 2. 使用 Jamendo 搜索
     try {
-      final response = await _requestWithRetry(
-        '$_baseUrl/search?keywords=${Uri.encodeComponent(keyword)}&limit=$limit',
-      );
+      print('🔍 在 Jamendo 搜索: $keyword');
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&search=${Uri.encodeComponent(keyword)}&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
 
       if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List songs = data['result']?['songs'] ?? [];
+        final List results = data['results'] ?? [];
         
-        final results = songs.map((song) {
+        final songs = results.map((track) {
           return Song(
-            id: song['id'].toString(),
-            title: song['name'] ?? '未知歌曲',
-            artist: (song['artists'] as List?)?.map((a) => a['name']).join('/') ?? '未知歌手',
-            album: song['album']?['name'] ?? '未知专辑',
-            albumArt: song['album']?['picUrl'] ?? '',
-            url: '', // 需要单独获取播放URL
-            duration: Duration(milliseconds: song['duration'] ?? 0),
+            id: track['id'].toString(),
+            title: track['name'] ?? '未知歌曲',
+            artist: track['artist_name'] ?? '未知歌手',
+            album: track['album_name'] ?? '未知专辑',
+            albumArt: track['album_image'] ?? track['image'] ?? '',
+            url: track['audio'] ?? track['audiodownload'] ?? '',
+            duration: Duration(seconds: track['duration'] ?? 0),
             releaseDate: DateTime.now(),
           );
         }).toList();
         
         // 缓存成功的搜索结果
-        if (results.isNotEmpty) {
-          await CacheService.cacheSearchResults(keyword, results);
+        if (songs.isNotEmpty) {
+          print('✅ 搜索到 ${songs.length} 首歌曲');
+          await CacheService.cacheSearchResults(keyword, songs);
         }
         
-        return results;
+        return songs;
       }
     } catch (e) {
       print('搜索歌曲失败: $e');
@@ -208,8 +141,11 @@ class MusicApiService {
     return MockMusicService.searchMockSongs(keyword);
   }
 
-  /// 获取歌曲播放URL
+  /// 获取歌曲播放URL（Jamendo 歌曲已包含URL，此方法用于兼容）
   Future<String?> getSongUrl(String songId) async {
+    // Jamendo 的歌曲在获取时已经包含了播放URL
+    // 这个方法主要用于保持接口兼容性
+    
     // 1. 先尝试从缓存加载
     final cachedUrl = await CacheService.getCachedSongUrl(songId);
     if (cachedUrl != null && cachedUrl.isNotEmpty) {
@@ -217,162 +153,85 @@ class MusicApiService {
       return cachedUrl;
     }
     
-    // 2. 缓存无效，尝试网络请求
+    // 2. 尝试通过 ID 获取歌曲详情
     try {
-      final response = await _requestWithRetry(
-        '$_baseUrl/song/url?id=$songId',
-      );
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&id=$songId&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
 
       if (response != null && response.statusCode == 200) {
-        final responseBody = response.body;
+        final data = json.decode(response.body);
+        final List results = data['results'] ?? [];
         
-        // 处理可能的双JSON问题
-        String cleanedBody = responseBody;
-        if (responseBody.contains('}{')) {
-          final firstBraceIndex = responseBody.indexOf('{');
-          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
-          if (firstCloseBraceIndex != -1) {
-            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
-          }
-        }
-        
-        final data = json.decode(cleanedBody);
-        
-        // 检查API返回的状态码
-        if (data['code'] != null && data['code'] != 200) {
-          print('API返回错误: ${data['msg'] ?? '未知错误'}');
-          return null;
-        }
-        
-        final List urls = data['data'] ?? [];
-        if (urls.isNotEmpty) {
-          final url = urls[0]['url'];
+        if (results.isNotEmpty) {
+          final track = results[0];
+          final playUrl = track['audio'] ?? track['audiodownload'] ?? '';
+          
           // 缓存播放URL
-          if (url != null && url.isNotEmpty) {
-            await CacheService.cacheSongUrl(songId, url);
+          if (playUrl.isNotEmpty) {
+            await CacheService.cacheSongUrl(songId, playUrl);
+            return playUrl;
           }
-          return url;
         }
       }
     } catch (e) {
       print('获取播放URL失败: $e');
     }
+    
     return null;
   }
 
   /// 获取歌曲详情（包括播放URL）
   Future<Song?> getSongDetail(String songId) async {
     try {
-      // 获取歌曲详细信息
-      final detailResponse = await _requestWithRetry(
-        '$_baseUrl/song/detail?ids=$songId',
-      );
+      print('🎵 获取歌曲详情: $songId');
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&id=$songId&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
 
-      if (detailResponse != null && detailResponse.statusCode == 200) {
-        final responseBody = detailResponse.body;
+      if (response != null && response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List results = data['results'] ?? [];
         
-        // 检查响应是否有效
-        if (responseBody.isEmpty) {
-          print('歌曲详情响应为空');
-          return null;
-        }
+        if (results.isEmpty) return null;
         
-        // 处理可能的双JSON问题（去除重复的JSON）
-        String cleanedBody = responseBody;
-        if (responseBody.contains('}{')) {
-          // 只取第一个完整的JSON对象
-          final firstBraceIndex = responseBody.indexOf('{');
-          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
-          if (firstCloseBraceIndex != -1) {
-            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
-          }
-        }
-        
-        final detailData = json.decode(cleanedBody);
-        
-        // 检查API返回的状态码
-        if (detailData['code'] != null && detailData['code'] != 200) {
-          print('API返回错误: ${detailData['msg'] ?? '未知错误'}');
-          return null;
-        }
-        
-        final List songs = detailData['songs'] ?? [];
-        
-        if (songs.isEmpty) return null;
-        
-        final songData = songs[0];
-        
-        // 获取播放URL
-        final playUrl = await getSongUrl(songId);
+        final track = results[0];
         
         return Song(
-          id: songData['id'].toString(),
-          title: songData['name'] ?? '未知歌曲',
-          artist: (songData['ar'] as List?)?.map((a) => a['name']).join('/') ?? '未知歌手',
-          album: songData['al']?['name'] ?? '未知专辑',
-          albumArt: songData['al']?['picUrl'] ?? '',
-          url: playUrl ?? '',
-          duration: Duration(milliseconds: songData['dt'] ?? 0),
+          id: track['id'].toString(),
+          title: track['name'] ?? '未知歌曲',
+          artist: track['artist_name'] ?? '未知歌手',
+          album: track['album_name'] ?? '未知专辑',
+          albumArt: track['album_image'] ?? track['image'] ?? '',
+          url: track['audio'] ?? track['audiodownload'] ?? '',
+          duration: Duration(seconds: track['duration'] ?? 0),
           releaseDate: DateTime.now(),
         );
       }
     } catch (e) {
       print('获取歌曲详情失败: $e');
-      // 不再打印详细的异常信息，避免冗余输出
     }
     return null;
   }
-  
-  /// 辅助方法：找到匹配的右花括号
-  int _findMatchingBrace(String str, int openIndex) {
-    int count = 0;
-    for (int i = openIndex; i < str.length; i++) {
-      if (str[i] == '{') count++;
-      if (str[i] == '}') count--;
-      if (count == 0) return i;
-    }
-    return -1;
-  }
 
-  /// 获取歌单详情
+  /// 获取歌单详情（Jamendo 使用播放列表）
   Future<List<Song>> getPlaylistDetail(String playlistId) async {
     try {
-      final response = await _requestWithRetry(
-        '$_baseUrl/playlist/detail?id=$playlistId',
-      );
-  
+      print('🎵 获取播放列表: $playlistId');
+      final url = '$_jamendoBaseUrl/playlists/tracks/?client_id=$_jamendoClientId&format=json&id=$playlistId&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
+
       if (response != null && response.statusCode == 200) {
-        final responseBody = response.body;
-          
-        // 处理可能的双JSON问题
-        String cleanedBody = responseBody;
-        if (responseBody.contains('}{')) {
-          final firstBraceIndex = responseBody.indexOf('{');
-          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
-          if (firstCloseBraceIndex != -1) {
-            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
-          }
-        }
-          
-        final data = json.decode(cleanedBody);
-          
-        // 检查API返回的状态码
-        if (data['code'] != null && data['code'] != 200) {
-          print('API返回错误: ${data['msg'] ?? '未知错误'}');
-          return [];
-        }
-          
-        final List tracks = data['playlist']?['tracks'] ?? [];
-          
-        return tracks.map((track) {
+        final data = json.decode(response.body);
+        final List results = data['results'] ?? [];
+        
+        return results.map((track) {
           return Song(
             id: track['id'].toString(),
             title: track['name'] ?? '未知歌曲',
-            artist: (track['ar'] as List?)?.map((a) => a['name']).join('/') ?? '未知歌手',
-            album: track['al']?['name'] ?? '未知专辑',
-            albumArt: track['al']?['picUrl'] ?? '',
-            url: '', // 需要单独获取播放URL
-            duration: Duration(milliseconds: track['dt'] ?? 0),
+            artist: track['artist_name'] ?? '未知歌手',
+            album: track['album_name'] ?? '未知专辑',
+            albumArt: track['album_image'] ?? track['image'] ?? '',
+            url: track['audio'] ?? track['audiodownload'] ?? '',
+            duration: Duration(seconds: track['duration'] ?? 0),
             releaseDate: DateTime.now(),
           );
         }).toList();
@@ -383,7 +242,7 @@ class MusicApiService {
     return [];
   }
 
-  /// 获取推荐歌单
+  /// 获取推荐歌单（使用 Jamendo 播放列表）
   Future<List<Map<String, dynamic>>> getRecommendPlaylists({int limit = 10}) async {
     // 1. 先尝试从缓存加载
     final cachedPlaylists = await CacheService.getCachedRecommendPlaylists();
@@ -392,34 +251,35 @@ class MusicApiService {
       return cachedPlaylists;
     }
     
-    // 2. 缓存无效，尝试网络请求
+    // 2. 获取 Jamendo 播放列表
     try {
-      final response = await _requestWithRetry(
-        '$_baseUrl/personalized?limit=$limit',
-      );
+      print('🎵 获取 Jamendo 推荐歌单...');
+      final url = '$_jamendoBaseUrl/playlists/?client_id=$_jamendoClientId&format=json&limit=$limit&order=popularity_total';
+      final response = await _requestWithTimeout(url);
 
       if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List result = data['result'] ?? [];
+        final List results = data['results'] ?? [];
         
-        final playlists = result.map((item) {
+        final playlists = results.map((item) {
           return {
             'id': item['id'].toString(),
             'name': item['name'] ?? '未知歌单',
-            'coverImgUrl': item['picUrl'] ?? '',
-            'playCount': item['playCount'] ?? 0,
+            'coverImgUrl': 'https://picsum.photos/seed/${item['id']}/300/300',
+            'playCount': 0,
           };
         }).toList();
         
         // 缓存成功的结果
         if (playlists.isNotEmpty) {
+          print('✅ 获取 ${playlists.length} 个推荐歌单');
           await CacheService.cacheRecommendPlaylists(playlists);
         }
         
         return playlists;
       }
     } catch (e) {
-      print('获取推荐歌单失败，使用离线数据: $e');
+      print('获取推荐歌单失败: $e');
     }
     
     // 3. 网络请求失败，返回模拟数据
@@ -427,23 +287,20 @@ class MusicApiService {
     return MockMusicService.getMockPlaylists();
   }
 
-  /// 备用方案：使用免费音乐库（Jamendo）
+  /// 获取 Jamendo 音乐（核心方法）
   Future<List<Song>> getJamendoTracks({int limit = 30}) async {
     try {
       // Jamendo 免费音乐API - 无需API key的公开接口
-      final response = await http.get(
-        Uri.parse(
-          'https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=$limit&include=musicinfo&audiodownload=mp31',
-        ),
-      ).timeout(_timeout);
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List results = data['results'] ?? [];
         
         return results.map((track) {
           return Song(
-            id: track['id'],
+            id: track['id'].toString(),
             title: track['name'] ?? '未知歌曲',
             artist: track['artist_name'] ?? '未知歌手',
             album: track['album_name'] ?? '未知专辑',
@@ -460,15 +317,32 @@ class MusicApiService {
     return [];
   }
 
-  /// 获取免费CC音乐（Free Music Archive）
-  Future<List<Song>> getFreeMusicArchiveTracks({int limit = 20}) async {
+  /// 根据流派获取音乐
+  Future<List<Song>> getTracksByGenre(String genre, {int limit = 30}) async {
     try {
-      // 这里可以集成Free Music Archive API
-      // 注意：需要API key
-      print('Free Music Archive API需要注册获取API key');
-      return [];
+      print('🎵 获取 $genre 音乐...');
+      final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&limit=$limit&tags=$genre&include=musicinfo&audiodownload=mp31';
+      final response = await _requestWithTimeout(url);
+
+      if (response != null && response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List results = data['results'] ?? [];
+        
+        return results.map((track) {
+          return Song(
+            id: track['id'].toString(),
+            title: track['name'] ?? '未知歌曲',
+            artist: track['artist_name'] ?? '未知歌手',
+            album: track['album_name'] ?? '未知专辑',
+            albumArt: track['album_image'] ?? track['image'] ?? '',
+            url: track['audio'] ?? track['audiodownload'] ?? '',
+            duration: Duration(seconds: track['duration'] ?? 0),
+            releaseDate: DateTime.now(),
+          );
+        }).toList();
+      }
     } catch (e) {
-      print('获取FMA音乐失败: $e');
+      print('获取流派音乐失败: $e');
     }
     return [];
   }
