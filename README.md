@@ -29,16 +29,18 @@
 
 ## 音乐来源 🎵
 
-应用使用多个免费音乐源，确保所有歌曲都可以真实播放：
+应用使用两个免费音乐源，确保所有歌曲都可以真实播放：
 
-### 1️⃣ 主要音乐源：**Jamendo API**
+### 1️⃣ 主要音乐源：**Jamendo Music** ⭐
 - ✅ **完全免费**：无需API key，公开访问
 - ✅ **真实可播放**：提供MP3直链
 - ✅ **正版授权**：Creative Commons授权音乐
 - ✅ **丰富库**：超过50万首高质量音乐
 - 🎸 **多风格**：Rock, Pop, Jazz, Electronic, Classical等
+- 🔍 **支持搜索**：按歌曲名、艺人、标签搜索
+- 🏆 **排行榜**：按流行度、播放次数排序
 
-**API端点**：`https://api.jamendo.com/v3.0/tracks/`
+**API端点**：`https://api.jamendo.com/v3.0/`
 
 ### 2️⃣ 备用音乐源：**Bensound**
 - ✅ **本地离线数据**：10首精选的Bensound免费音乐
@@ -51,13 +53,11 @@
 ### 3️⃣ 数据加载优先级
 
 ```
-缓存检查
+缓存检查 (1小时有效期)
     ↓
- Jamendo API（主要源）
+Jamendo API ⭐（主要源）
     ↓
-网易云音乐API（备用）
-    ↓
-Bensound 本地数据（离线）
+Bensound 本地数据（离线备用）
 ```
 
 ### 使用示例
@@ -160,36 +160,32 @@ lib/
 
 ### 音乐API服务
 
-项目集成了多个免费音乐API，提供在线音乐播放功能：
+项目使用 **Jamendo** 免费音乐库，提供完全免费的在线音乐播放功能：
 
-1. **网易云音乐API** （默认）
-   - 基于URL: `https://netease-cloud-music-api-rust-psi.vercel.app`
-   - 支持功能：
-     - 推荐歌曲：`/personalized/newsong`
-     - 热门排行：`/top/list`
-     - 歌曲搜索：`/search`
-     - 播放URL：`/song/url`
-     - 歌单详情：`/playlist/detail`
-     - 推荐歌单：`/personalized`
-
-2. **Jamendo API** （备用）
-   - 提供免费CC授权音乐
-   - 支持免审查商用
-   - API: `https://api.jamendo.com/v3.0/tracks/`
+**Jamendo Music API**
+- 基于URL: `https://api.jamendo.com/v3.0`
+- 支持功能：
+  - 推荐歌曲：`/tracks/`
+  - 热门排行：`/tracks/?order=popularity_total`
+  - 歌曲搜索：`/tracks/?search=keyword`
+  - 播放URL：直接包含在响应中
+  - 歌单详情：`/playlists/tracks/`
+  - 推荐歌单：`/playlists/?order=popularity_total`
+  - 流派分类：`/tracks/?tags=genre`
 
 ### 使用示例
 
 ```dart
-// 创廾API服务实例
+// 创建API服务实例
 final apiService = MusicApiService();
 
 // 获取推荐歌曲（自动使用缓存）
 final songs = await apiService.getRecommendSongs(limit: 30);
 
 // 搜索歌曲（自动缓存结果）
-final results = await apiService.searchSongs('周杰伦', limit: 50);
+final results = await apiService.searchSongs('rock', limit: 50);
 
-// 获取歌曲详情和播放URL（自动缓存URL）
+// 获取歌曲详情和播放URL
 final songDetail = await apiService.getSongDetail(songId);
 
 // 获取热门排行榜
@@ -197,6 +193,9 @@ final topSongs = await apiService.getTopSongs(limit: 50);
 
 // 获取推荐歌单（自动缓存）
 final playlists = await apiService.getRecommendPlaylists(limit: 10);
+
+// 按流派获取音乐
+final jazzSongs = await apiService.getTracksByGenre('jazz', limit: 30);
 
 // 缓存管理
 import 'package:ai_music/services/cache_service.dart';
@@ -211,25 +210,18 @@ await CacheService.clearAllCache();
 
 ### 注意事项
 
-- 本项目使用的API仅供学习和测试使用
-- 商业使用请遵守相关API的使用协议
-- 建议使用自己的API服务或正版音乐平台API
+- 本项目使用的 Jamendo API 为完全免费
+- 所有音乐均为 Creative Commons 授权
+- 允许个人非商业使用
 - API请求可能因网络问题失败，已做错误处理
 
 ### 网络优化功能
 
-**自动重试机制**
-- 请求超时后自动重试（最多2次）
-- 失败自动切换到备用API地址
-- 5秒超时限制，快速失败快速切换
+**自动超时处理**
+- 10秒超时限制，避免长时间等待
+- 请求失败自动降级到本地数据
 
-**多个API备用地址**
-- 网易云音乐API（7个备用地址）
-  - 5个Vercel部署地址
-  - 2个国内稳定API服务
-- 自动切换机制，提高可用性
-
-**本地缓存机制** ✨ （新增）
+**本地缓存机制** ✨
 - 自动缓存API响应数据（1小时有效期）
 - 缓存内容：
   - 推荐歌曲列表
@@ -240,24 +232,17 @@ await CacheService.clearAllCache();
 - 缓存自动管理，过期自动更新
 
 **离线备用方案**
-- 网络完全失败时使用模拟数据
-- 提供10首流行歌曲和10个热门歌单
+- 网络完全失败时使用 Bensound 本地数据
+- 提供10首高质量免费音乐
+- 所有歌曲均可正常播放
 - 确保应用始终可用
 
 **数据加载优先级**
 
 应用会按以下顺序加载数据：
 1. ✅ **本地缓存** - 最快，立即显示
-2. 🌐 **网络请求** - 自动重试并切换API
-3. 📡 **离线数据** - 网络失败时使用
-
-**解决网络超时问题**
-
-如果遇到网络超时问题，应用会：
-1. 自动重试并切换API地址
-2. 失败后自动使用离线数据
-3. 显示模拟歌曲和歌单
-4. 用户可以浏览，但无法播放（需要真实播放URL）
+2. 🎵 **Jamendo API** - 免费音乐库，真实可播放
+3. 💾 **Bensound 本地** - 网络失败时使用
 
 此项目为音乐播放器的框架实现，实际使用时需要：
 
