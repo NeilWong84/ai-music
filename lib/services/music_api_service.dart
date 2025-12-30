@@ -1,23 +1,73 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 
 /// 音乐API服务 - 提供免费的网络音源
 class MusicApiService {
-  // 使用网易云音乐的公开API（非官方）
-  static const String _baseUrl = 'https://netease-cloud-music-api-rust-psi.vercel.app';
+  // 使用网易云音乐的公开API（非官方）- 多个备用地址
+  static const List<String> _baseUrls = [
+    'https://netease-cloud-music-api-jade-sigma.vercel.app',
+    'https://netease-api.vercel.app',
+    'https://music-api.heheda.top',
+  ];
+  
+  // 当前使用的API索引
+  int _currentUrlIndex = 0;
+  
+  // 获取当前BASE URL
+  String get _baseUrl => _baseUrls[_currentUrlIndex];
+  
+  // 请求超时设置
+  static const Duration _timeout = Duration(seconds: 10);
   
   // 备用：使用QQ音乐API
   static const String _qqMusicBase = 'https://api.qq.jsososo.com';
+  
+  /// 切换到下一个API地址
+  void _switchToNextUrl() {
+    _currentUrlIndex = (_currentUrlIndex + 1) % _baseUrls.length;
+    print('切换API地址到: $_baseUrl');
+  }
+  
+  /// 带超时和重试的HTTP请求
+  Future<http.Response?> _requestWithRetry(String url, {int maxRetries = 2}) async {
+    for (int i = 0; i < maxRetries; i++) {
+      try {
+        final response = await http.get(
+          Uri.parse(url),
+        ).timeout(_timeout);
+        
+        if (response.statusCode == 200) {
+          return response;
+        } else {
+          print('请求失败，状态码: ${response.statusCode}');
+        }
+      } on TimeoutException catch (e) {
+        print('请求超时 (尝试 ${i + 1}/$maxRetries): $e');
+        if (i < maxRetries - 1) {
+          _switchToNextUrl();
+          await Future.delayed(Duration(milliseconds: 500));
+        }
+      } catch (e) {
+        print('请求异常 (尝试 ${i + 1}/$maxRetries): $e');
+        if (i < maxRetries - 1) {
+          _switchToNextUrl();
+          await Future.delayed(Duration(milliseconds: 500));
+        }
+      }
+    }
+    return null;
+  }
 
   /// 获取推荐歌曲
   Future<List<Song>> getRecommendSongs({int limit = 30}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/personalized/newsong?limit=$limit'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/personalized/newsong?limit=$limit',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List result = data['result'] ?? [];
         
@@ -45,11 +95,11 @@ class MusicApiService {
   Future<List<Song>> getTopSongs({int limit = 50}) async {
     try {
       // 获取飙升榜
-      final response = await http.get(
-        Uri.parse('$_baseUrl/top/list?idx=3'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/top/list?idx=3',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List tracks = data['playlist']?['tracks'] ?? [];
         
@@ -75,11 +125,11 @@ class MusicApiService {
   /// 搜索歌曲
   Future<List<Song>> searchSongs(String keyword, {int limit = 30}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/search?keywords=${Uri.encodeComponent(keyword)}&limit=$limit'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/search?keywords=${Uri.encodeComponent(keyword)}&limit=$limit',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List songs = data['result']?['songs'] ?? [];
         
@@ -105,11 +155,11 @@ class MusicApiService {
   /// 获取歌曲播放URL
   Future<String?> getSongUrl(String songId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/song/url?id=$songId'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/song/url?id=$songId',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List urls = data['data'] ?? [];
         if (urls.isNotEmpty) {
@@ -126,11 +176,11 @@ class MusicApiService {
   Future<Song?> getSongDetail(String songId) async {
     try {
       // 获取歌曲详细信息
-      final detailResponse = await http.get(
-        Uri.parse('$_baseUrl/song/detail?ids=$songId'),
+      final detailResponse = await _requestWithRetry(
+        '$_baseUrl/song/detail?ids=$songId',
       );
 
-      if (detailResponse.statusCode == 200) {
+      if (detailResponse != null && detailResponse.statusCode == 200) {
         final detailData = json.decode(detailResponse.body);
         final List songs = detailData['songs'] ?? [];
         
@@ -161,11 +211,11 @@ class MusicApiService {
   /// 获取歌单详情
   Future<List<Song>> getPlaylistDetail(String playlistId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/playlist/detail?id=$playlistId'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/playlist/detail?id=$playlistId',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List tracks = data['playlist']?['tracks'] ?? [];
         
@@ -191,11 +241,11 @@ class MusicApiService {
   /// 获取推荐歌单
   Future<List<Map<String, dynamic>>> getRecommendPlaylists({int limit = 10}) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/personalized?limit=$limit'),
+      final response = await _requestWithRetry(
+        '$_baseUrl/personalized?limit=$limit',
       );
 
-      if (response.statusCode == 200) {
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         final List result = data['result'] ?? [];
         
