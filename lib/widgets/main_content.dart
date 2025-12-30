@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/song.dart';
 import '../services/playlist_service.dart';
 import '../services/music_api_service.dart';
+import '../services/mock_music_service.dart';
 import '../services/music_player.dart';
 import 'animations/loading_animation.dart';
 import '../utils/logger.dart';
@@ -498,8 +499,13 @@ class _RecommendPlaylistsState extends State<_RecommendPlaylists> {
       }
     } catch (e) {
       AppLogger.e('加载推荐歌单失败', e);
+      // 如果异常也无法获取mock数据，至少保证UI不会空白
       if (mounted) {
         setState(() {
+          // 确保至少有mock数据
+          if (_playlists.isEmpty) {
+            _playlists = MockMusicService.getMockPlaylists();
+          }
           _isLoading = false;
         });
       }
