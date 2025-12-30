@@ -224,7 +224,26 @@ class MusicApiService {
       );
 
       if (response != null && response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseBody = response.body;
+        
+        // 处理可能的双JSON问题
+        String cleanedBody = responseBody;
+        if (responseBody.contains('}{')) {
+          final firstBraceIndex = responseBody.indexOf('{');
+          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
+          if (firstCloseBraceIndex != -1) {
+            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
+          }
+        }
+        
+        final data = json.decode(cleanedBody);
+        
+        // 检查API返回的状态码
+        if (data['code'] != null && data['code'] != 200) {
+          print('API返回错误: ${data['msg'] ?? '未知错误'}');
+          return null;
+        }
+        
         final List urls = data['data'] ?? [];
         if (urls.isNotEmpty) {
           final url = urls[0]['url'];
@@ -250,7 +269,33 @@ class MusicApiService {
       );
 
       if (detailResponse != null && detailResponse.statusCode == 200) {
-        final detailData = json.decode(detailResponse.body);
+        final responseBody = detailResponse.body;
+        
+        // 检查响应是否有效
+        if (responseBody.isEmpty) {
+          print('歌曲详情响应为空');
+          return null;
+        }
+        
+        // 处理可能的双JSON问题（去除重复的JSON）
+        String cleanedBody = responseBody;
+        if (responseBody.contains('}{')) {
+          // 只取第一个完整的JSON对象
+          final firstBraceIndex = responseBody.indexOf('{');
+          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
+          if (firstCloseBraceIndex != -1) {
+            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
+          }
+        }
+        
+        final detailData = json.decode(cleanedBody);
+        
+        // 检查API返回的状态码
+        if (detailData['code'] != null && detailData['code'] != 200) {
+          print('API返回错误: ${detailData['msg'] ?? '未知错误'}');
+          return null;
+        }
+        
         final List songs = detailData['songs'] ?? [];
         
         if (songs.isEmpty) return null;
@@ -273,8 +318,20 @@ class MusicApiService {
       }
     } catch (e) {
       print('获取歌曲详情失败: $e');
+      // 不再打印详细的异常信息，避免冗余输出
     }
     return null;
+  }
+  
+  /// 辅助方法：找到匹配的右花括号
+  int _findMatchingBrace(String str, int openIndex) {
+    int count = 0;
+    for (int i = openIndex; i < str.length; i++) {
+      if (str[i] == '{') count++;
+      if (str[i] == '}') count--;
+      if (count == 0) return i;
+    }
+    return -1;
   }
 
   /// 获取歌单详情
@@ -283,11 +340,30 @@ class MusicApiService {
       final response = await _requestWithRetry(
         '$_baseUrl/playlist/detail?id=$playlistId',
       );
-
+  
       if (response != null && response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final responseBody = response.body;
+          
+        // 处理可能的双JSON问题
+        String cleanedBody = responseBody;
+        if (responseBody.contains('}{')) {
+          final firstBraceIndex = responseBody.indexOf('{');
+          final firstCloseBraceIndex = _findMatchingBrace(responseBody, firstBraceIndex);
+          if (firstCloseBraceIndex != -1) {
+            cleanedBody = responseBody.substring(firstBraceIndex, firstCloseBraceIndex + 1);
+          }
+        }
+          
+        final data = json.decode(cleanedBody);
+          
+        // 检查API返回的状态码
+        if (data['code'] != null && data['code'] != 200) {
+          print('API返回错误: ${data['msg'] ?? '未知错误'}');
+          return [];
+        }
+          
         final List tracks = data['playlist']?['tracks'] ?? [];
-        
+          
         return tracks.map((track) {
           return Song(
             id: track['id'].toString(),
