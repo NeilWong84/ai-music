@@ -20,6 +20,7 @@ dependencies:
   path_provider: ^2.1.1
   flutter_svg: ^2.0.7
   rxdart: ^0.27.7  # 响应式编程库
+  logger: ^2.0.2+1  # 专业日志记录组件
 
 dev_dependencies:
   flutter_test:

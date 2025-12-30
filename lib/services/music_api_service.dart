@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import 'mock_music_service.dart';
 import 'cache_service.dart';
+import '../utils/logger.dart';
 
 /// 音乐API服务 - 使用多个免费开源音乐平台
 class MusicApiService {
@@ -28,12 +29,12 @@ class MusicApiService {
       if (response.statusCode == 200) {
         return response;
       } else {
-        print('请求失败，状态码: ${response.statusCode}');
+        AppLogger.w('请求失败，状态码: ${response.statusCode}');
       }
     } on TimeoutException catch (e) {
-      print('请求超时: $e');
+      AppLogger.w('请求超时: $e');
     } catch (e) {
-      print('请求异常: $e');
+      AppLogger.e('请求异常: $e');
     }
     return null;
   }

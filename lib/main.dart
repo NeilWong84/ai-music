@@ -3,8 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:ai_music/screens/main_screen.dart';
 import 'package:ai_music/services/music_player.dart';
 import 'package:ai_music/services/playlist_service.dart';
+import 'package:ai_music/utils/logger.dart';
 
-void main() {
+void main() async {
+  // 确保 Flutter绑定初始化
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // 初始化日志系统
+  await AppLogger.init();
+  AppLogger.i('🚀 应用启动...');
+  
+  // 清理旧日志（保留最近7天）
+  await AppLogger.cleanOldLogs();
+  
   runApp(const MyApp());
 }
 
