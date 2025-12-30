@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../services/playlist_service.dart';
 import '../services/music_api_service.dart';
 import '../services/music_player.dart';
+import 'animations/loading_animation.dart';
 
 class MainContent extends StatelessWidget {
   final int index;
@@ -524,7 +525,11 @@ class _RecommendPlaylistsState extends State<_RecommendPlaylists> {
             const SizedBox(
               height: 180,
               child: Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: LoadingAnimation(
+                  size: 60,
+                  color: Colors.white,
+                  text: '加载中...',
+                ),
               ),
             )
           else if (_playlists.isEmpty)
@@ -721,7 +726,11 @@ class _NewMusicState extends State<_NewMusic> {
             const SizedBox(
               height: 300,
               child: Center(
-                child: CircularProgressIndicator(color: Colors.white),
+                child: LoadingAnimation(
+                  size: 60,
+                  color: Colors.white,
+                  text: '加载最新音乐...',
+                ),
               ),
             )
           else if (_songs.isEmpty)

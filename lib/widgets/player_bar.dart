@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/music_player.dart';
 import '../models/song.dart';
+import 'animations/player_animation.dart';
 
 class PlayerBar extends StatefulWidget {
   const PlayerBar({Key? key}) : super(key: key);
@@ -33,18 +34,48 @@ class _PlayerBarState extends State<PlayerBar> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                // 专辑封面
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: const Color(0xFF3A3A3A),
-                  ),
-                  child: const Icon(
-                    Icons.music_note,
-                    color: Colors.white30,
-                  ),
+                // 专辑封面 - 添加动画
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFF3A3A3A),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: currentSong?.albumArt.isNotEmpty == true
+                            ? Image.network(
+                                currentSong!.albumArt,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white30,
+                                  );
+                                },
+                              )
+                            : const Icon(
+                                Icons.music_note,
+                                color: Colors.white30,
+                              ),
+                      ),
+                    ),
+                    // 播放时显示波形动画
+                    if (musicPlayer.playStatus == PlayStatus.playing)
+                      Positioned(
+                        bottom: 2,
+                        child: WaveformAnimation(
+                          isPlaying: true,
+                          color: Colors.blue,
+                          barCount: 3,
+                          height: 15,
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 10),
                 // 歌曲信息
@@ -92,29 +123,18 @@ class _PlayerBarState extends State<PlayerBar> {
                       },
                     ),
                     const SizedBox(width: 10),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          musicPlayer.playStatus == PlayStatus.playing 
-                              ? Icons.pause 
-                              : Icons.play_arrow,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          if (musicPlayer.playStatus == PlayStatus.playing) {
-                            musicPlayer.pause();
-                          } else {
-                            musicPlayer.play();
-                          }
-                        },
-                      ),
+                    PlayPauseButton(
+                      isPlaying: musicPlayer.playStatus == PlayStatus.playing,
+                      onPressed: () {
+                        if (musicPlayer.playStatus == PlayStatus.playing) {
+                          musicPlayer.pause();
+                        } else {
+                          musicPlayer.play();
+                        }
+                      },
+                      size: 40,
+                      color: Colors.white,
+                      backgroundColor: Colors.blue,
                     ),
                     const SizedBox(width: 10),
                     IconButton(
