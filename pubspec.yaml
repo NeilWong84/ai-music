@@ -31,8 +31,4 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-  fonts:
-    - family: MusicIcons
-      fonts:
-        - asset: assets/fonts/MusicIcons.ttf
 

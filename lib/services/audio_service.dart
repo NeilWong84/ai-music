@@ -1,3 +1,7 @@
+// TODO: 此文件需要重新实现以符合最新的 audio_service API
+// 目前使用 music_player.dart 作为音频播放的主要实现
+
+/*
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
@@ -343,3 +347,4 @@ class AudioPlayerHandler implements AudioHandler {
     _speed.close();
   }
 }
+*/

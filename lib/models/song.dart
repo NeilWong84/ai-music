@@ -31,7 +31,7 @@ class Song {
       albumArt: json['albumArt'] ?? '',
       url: json['url'] ?? '',
       duration: Duration(
-        seconds: json['duration'] != null ? json['duration'] : 0,
+        seconds: json['duration'] ?? 0,
       ),
       genre: json['genre'] ?? '',
       releaseDate: json['releaseDate'] != null

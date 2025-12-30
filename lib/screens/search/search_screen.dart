@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/song.dart';
-import '../services/playlist_service.dart';
-import '../widgets/song_item.dart';
+import '../../models/song.dart';
+import '../../services/playlist_service.dart';
+import '../../widgets/song_item.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({Key? key}) : super(key: key);

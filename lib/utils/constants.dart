@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 // 常量定义
 class AppConstants {
   // 应用名称

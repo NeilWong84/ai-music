@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../models/song.dart';
+import '../services/playlist_service.dart';
 
 class MainContent extends StatelessWidget {
   final int index;
@@ -360,11 +363,11 @@ class _RecommendPlaylists extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.all(8),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
                         child: Text(
                           '歌单 $index',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                           ),

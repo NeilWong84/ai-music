@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:ai_music/widgets/navigation_bar.dart';
+import 'package:ai_music/widgets/navigation_bar.dart' as custom_nav;
 import 'package:ai_music/widgets/main_content.dart';
 import 'package:ai_music/widgets/player_bar.dart';
-import 'package:ai_music/services/music_player.dart';
-import 'package:ai_music/services/playlist_service.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({Key? key}) : super(key: key);
+  const MainScreen({super.key});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -30,7 +27,7 @@ class _MainScreenState extends State<MainScreen> {
       body: Row(
         children: [
           // 左侧导航栏
-          NavigationBar(
+          custom_nav.SideNavigationBar(
             currentIndex: _selectedIndex,
             onTap: (index) {
               setState(() {
@@ -45,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
       // 底部播放控制栏
-      bottom: const PlayerBar(),
+      bottomNavigationBar: const PlayerBar(),
     );
   }
 }
