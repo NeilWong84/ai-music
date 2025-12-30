@@ -123,23 +123,33 @@ lib/
 ### 使用示例
 
 ```dart
-// 创建API服务实例
+// 创廾API服务实例
 final apiService = MusicApiService();
 
-// 获取推荐歌曲
+// 获取推荐歌曲（自动使用缓存）
 final songs = await apiService.getRecommendSongs(limit: 30);
 
-// 搜索歌曲
+// 搜索歌曲（自动缓存结果）
 final results = await apiService.searchSongs('周杰伦', limit: 50);
 
-// 获取歌曲详情和播放URL
+// 获取歌曲详情和播放URL（自动缓存URL）
 final songDetail = await apiService.getSongDetail(songId);
 
 // 获取热门排行榜
 final topSongs = await apiService.getTopSongs(limit: 50);
 
-// 获取推荐歌单
+// 获取推荐歌单（自动缓存）
 final playlists = await apiService.getRecommendPlaylists(limit: 10);
+
+// 缓存管理
+import 'package:ai_music/services/cache_service.dart';
+
+// 查看缓存统计
+final stats = await CacheService.getCacheStats();
+print('缓存数量: ${stats['count']}, 大小: ${stats['sizeKB']}KB');
+
+// 清除所有缓存
+await CacheService.clearAllCache();
 ```
 
 ### 注意事项
@@ -154,16 +164,35 @@ final playlists = await apiService.getRecommendPlaylists(limit: 10);
 **自动重试机制**
 - 请求超时后自动重试（最多2次）
 - 失败自动切换到备用API地址
-- 10秒超时限制，避免长时间等待
+- 5秒超时限制，快速失败快速切换
 
 **多个API备用地址**
-- 网易云音乐API（3个备用地址）
+- 网易云音乐API（7个备用地址）
+  - 5个Vercel部署地址
+  - 2个国内稳定API服务
 - 自动切换机制，提高可用性
+
+**本地缓存机制** ✨ （新增）
+- 自动缓存API响应数据（1小时有效期）
+- 缓存内容：
+  - 推荐歌曲列表
+  - 推荐歌单列表
+  - 搜索结果（按关键词）
+  - 歌曲播放URL
+- 减少网络请求，提升响应速度
+- 缓存自动管理，过期自动更新
 
 **离线备用方案**
 - 网络完全失败时使用模拟数据
 - 提供10首流行歌曲和10个热门歌单
 - 确保应用始终可用
+
+**数据加载优先级**
+
+应用会按以下顺序加载数据：
+1. ✅ **本地缓存** - 最快，立即显示
+2. 🌐 **网络请求** - 自动重试并切换API
+3. 📡 **离线数据** - 网络失败时使用
 
 **解决网络超时问题**
 
