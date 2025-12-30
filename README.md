@@ -29,9 +29,9 @@
 
 ## 音乐来源 🎵
 
-应用使用两个免费音乐源，确保所有歌曲都可以真实播放：
+应用集成了多个开源免费音乐平台，确保所有歌曲都可以真实播放：
 
-### 1️⃣ 主要音乐源：**Jamendo Music** ⭐
+### 1️⃣ **Jamendo Music** ⭐
 - ✅ **完全免费**：无需API key，公开访问
 - ✅ **真实可播放**：提供MP3直链
 - ✅ **正版授权**：Creative Commons授权音乐
@@ -42,7 +42,17 @@
 
 **API端点**：`https://api.jamendo.com/v3.0/`
 
-### 2️⃣ 备用音乐源：**Bensound**
+### 2️⃣ **Incompetech (Kevin MacLeod)** 🎼
+- ✅ **著名作曲家**：Kevin MacLeod的免费背景音乐库
+- ✅ **广泛使用**：YouTube视频、游戏、影视作品常用
+- ✅ **多种风格**：轻松、欢快、悬疑、史诗等
+- 🎵 **高质量**：专业制作，音质优秀
+- 🆓 **CC授权**：Creative Commons Attribution
+- 💿 **10首精选**：包括热门歌曲如 Wallpaper, Sneaky Snitch 等
+
+**官网**：`https://incompetech.com`
+
+### 3️⃣ **Bensound** 🎹
 - ✅ **本地离线数据**：10首精选的Bensound免费音乐
 - ✅ **高质量**：Benjamin Tissot的专业作品
 - ✅ **稳定可靠**：直接从官方CDN加载
@@ -50,21 +60,37 @@
 
 **使用场景**：网络完全失败时的备用方案
 
-### 3️⃣ 数据加载优先级
+### 4️⃣ 数据加载优先级
 
 ```
 缓存检查 (1小时有效期)
     ↓
-Jamendo API ⭐（主要源）
+混合平台 API ⭐（Jamendo + Incompetech）
     ↓
 Bensound 本地数据（离线备用）
 ```
 
+**混合平台优势**：
+- 🎶 音乐多样化：结合多个平台的优势
+- 🔀 随机混合：自动打乱顺序，提供新鲜体验
+- 🛡️ 高可用性：单个平台失败不影响整体服务
+
 ### 使用示例
 
 ```dart
-// 获取推荐歌曲（自动使用 Jamendo）
+// 获取推荐歌曲（自动使用 Jamendo + Incompetech 混合）
 final songs = await musicApi.getRecommendSongs(limit: 30);
+
+// 按平台获取音乐
+final jamendoSongs = await musicApi.getTracksByPlatform('jamendo', limit: 20);
+final incompetechSongs = await musicApi.getTracksByPlatform('incompetech', limit: 10);
+final bensoundSongs = await musicApi.getTracksByPlatform('bensound');
+
+// 获取所有平台混合音乐
+final mixedSongs = await musicApi.getMixedPlatformTracks(limit: 50);
+
+// 按流派获取 Jamendo 音乐
+final jazzSongs = await musicApi.getTracksByGenre('jazz', limit: 30);
 
 // 每首歌都包含真实的播放 URL
 for (var song in songs) {
@@ -76,7 +102,13 @@ for (var song in songs) {
 ### 音乐授权说明
 
 - **Jamendo**：所有音乐都在 Creative Commons 授权下，允许个人非商业使用
+- **Incompetech (Kevin MacLeod)**：Creative Commons Attribution 授权，使用时需注明："Music by Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License"
 - **Bensound**：免费音乐，需要注明作者 Benjamin Tissot / Bensound.com
+
+**重要提示**：
+- ✅ 所有音乐均为合法免费资源
+- ✅ 个人非商业使用完全免费
+- ⚠️ 商业使用请查看具体授权协议
 
 ## 技术栈
 
