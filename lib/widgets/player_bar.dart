@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/music_player.dart';
 import '../models/song.dart';
+import '../screens/player_screen.dart';
 import 'animations/player_animation.dart';
 
 class PlayerBar extends StatefulWidget {
@@ -11,7 +12,7 @@ class PlayerBar extends StatefulWidget {
   State<PlayerBar> createState() => _PlayerBarState();}
 
 class _PlayerBarState extends State<PlayerBar> {
-  @override
+  bool _isHovering = false;
 
   @override
   Widget build(BuildContext context) {
@@ -78,35 +79,73 @@ class _PlayerBarState extends State<PlayerBar> {
                   ],
                 ),
                 const SizedBox(width: 10),
-                // 歌曲信息
+                // 歌曲信息 - 添加悬停效果和点击跳转
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        currentSong?.title ?? '请选择歌曲',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                  child: MouseRegion(
+                    onEnter: (_) => setState(() => _isHovering = true),
+                    onExit: (_) => setState(() => _isHovering = false),
+                    child: GestureDetector(
+                      onTap: currentSong != null
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PlayerScreen(),
+                                ),
+                              );
+                            }
+                          : null,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: _isHovering
+                              ? const Color(0xFF2A2A2A)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        currentSong != null 
-                          ? '${currentSong.artist} - ${currentSong.album}' 
-                          : '艺术家 - 专辑',
-                        style: TextStyle(
-                          color: Colors.grey[400],
-                          fontSize: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    currentSong?.title ?? '请选择歌曲',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (_isHovering && currentSong != null)
+                                  const Icon(
+                                    Icons.open_in_full,
+                                    color: Colors.grey,
+                                    size: 16,
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              currentSong != null
+                                  ? '${currentSong.artist} - ${currentSong.album}'
+                                  : '艺术家 - 专辑',
+                              style: TextStyle(
+                                color: Colors.grey[400],
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
+                    ),
                   ),
                 ),
                 // 播放控制按钮
