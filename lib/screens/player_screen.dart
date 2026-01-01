@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/music_player.dart';
 import '../models/song.dart';
 import 'dart:math' as math;
+import 'package:window_manager/window_manager.dart';
 
 class PlayerScreen extends StatefulWidget {
   const PlayerScreen({super.key});
@@ -47,88 +48,140 @@ class _PlayerScreenState extends State<PlayerScreen>
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF5E6D3),
-          body: Stack(
-            children: [
-              // 主体内容
-              Row(
-                children: [
-                  // 左侧：唱片区域
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: _buildVinylPlayer(currentSong, isPlaying),
-                    ),
-                  ),
-                  // 右侧：歌词区域
-                  Expanded(
-                    flex: 3,
-                    child: _buildLyricsSection(currentSong),
-                  ),
-                ],
-              ),
-              // 顶部左侧：返回按钮
-              Positioned(
-                top: 20,
-                left: 20,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Color(0xFF333333),
-                    size: 32,
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5E6D3),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-              // 顶部右侧：窗口控制按钮
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.open_in_new,
-                        color: Color(0xFF666666),
-                        size: 20,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  // 主体内容
+                  Row(
+                    children: [
+                      // 左侧：唱片区域
+                      Expanded(
+                        flex: 2,
+                        child: Center(
+                          child: _buildVinylPlayer(currentSong, isPlaying),
+                        ),
                       ),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.minimize,
-                        color: Color(0xFF666666),
-                        size: 20,
+                      // 右侧：歌词区域
+                      Expanded(
+                        flex: 3,
+                        child: _buildLyricsSection(currentSong),
                       ),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.crop_square,
-                        color: Color(0xFF666666),
-                        size: 20,
+                    ],
+                  ),
+                  // 顶部可拖动区域
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onPanStart: (details) {
+                        windowManager.startDragging();
+                      },
+                      child: Container(
+                        height: 60,
+                        color: Colors.transparent,
                       ),
-                      onPressed: () {},
                     ),
-                    IconButton(
+                  ),
+                  // 顶部左侧：返回按钮
+                  Positioned(
+                    top: 20,
+                    left: 20,
+                    child: IconButton(
                       icon: const Icon(
-                        Icons.close,
-                        color: Color(0xFF666666),
-                        size: 20,
+                        Icons.keyboard_arrow_down,
+                        color: Color(0xFF333333),
+                        size: 32,
                       ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                  ],
-                ),
+                  ),
+                  // 顶部右侧：窗口控制按钮
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.open_in_new,
+                            color: Color(0xFF666666),
+                            size: 20,
+                          ),
+                          onPressed: () async {
+                            // 全屏/退出全屏
+                            bool isFullScreen = await windowManager.isFullScreen();
+                            if (isFullScreen) {
+                              await windowManager.setFullScreen(false);
+                            } else {
+                              await windowManager.setFullScreen(true);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.minimize,
+                            color: Color(0xFF666666),
+                            size: 20,
+                          ),
+                          onPressed: () async {
+                            // 最小化窗口
+                            await windowManager.minimize();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.crop_square,
+                            color: Color(0xFF666666),
+                            size: 20,
+                          ),
+                          onPressed: () async {
+                            // 最大化/还原窗口
+                            bool isMaximized = await windowManager.isMaximized();
+                            if (isMaximized) {
+                              await windowManager.unmaximize();
+                            } else {
+                              await windowManager.maximize();
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            color: Color(0xFF666666),
+                            size: 20,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 底部播放控制栏
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _buildBottomControls(musicPlayer, currentSong),
+                  ),
+                ],
               ),
-              // 底部播放控制栏
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomControls(musicPlayer, currentSong),
-              ),
-            ],
+            ),
           ),
         );
       },

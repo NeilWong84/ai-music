@@ -22,6 +22,7 @@ class MainContent extends StatelessWidget {
           children: [
             if (index == 0) ...[
               // 发现页面内容
+              const SizedBox(height: 60), // 顶部间距，留出窗口控制按钮位置
               const _BannerSection(),
               const SizedBox(height: 20),
               const _RecommendPlaylists(),
@@ -29,6 +30,7 @@ class MainContent extends StatelessWidget {
               const _NewMusic(),
               const SizedBox(height: 20),
               const _RankingList(),
+              const SizedBox(height: 40), // 底部间距
             ] else if (index == 1) ...[
               // 推荐页面内容
               _buildRecommendContent(),
@@ -490,13 +492,21 @@ class _RecommendPlaylistsState extends State<_RecommendPlaylists> {
 
   Future<void> _loadPlaylists() async {
     try {
-      final playlists = await _apiService.getRecommendPlaylists(limit: 10);
+      // 优先使用 Mock 数据，加快加载速度
       if (mounted) {
         setState(() {
-          _playlists = playlists;
+          _playlists = MockMusicService.getMockPlaylists();
           _isLoading = false;
         });
       }
+      
+      // 在后台尝试加载 API 数据（可选）
+      // final playlists = await _apiService.getRecommendPlaylists(limit: 10);
+      // if (mounted && playlists.isNotEmpty) {
+      //   setState(() {
+      //     _playlists = playlists;
+      //   });
+      // }
     } catch (e) {
       AppLogger.e('加载推荐歌单失败', e);
       // 如果异常也无法获取mock数据，至少保证UI不会空白
@@ -890,6 +900,55 @@ class _NewMusicState extends State<_NewMusic> {
 class _RankingList extends StatelessWidget {
   const _RankingList({super.key});
 
+  // Mock 排行榜数据
+  final List<Map<String, dynamic>> _rankings = const [
+    {
+      'rank': 1,
+      'title': '一路生花',
+      'artist': '温奢',
+      'album': '一路生花',
+      'coverUrl': 'https://picsum.photos/seed/rank1/60/60',
+      'trend': 'up', // up, down, same
+      'playCount': 125680000,
+    },
+    {
+      'rank': 2,
+      'title': '孤勇者',
+      'artist': '陈奕迅',
+      'album': '孤勇者',
+      'coverUrl': 'https://picsum.photos/seed/rank2/60/60',
+      'trend': 'up',
+      'playCount': 98760000,
+    },
+    {
+      'rank': 3,
+      'title': '喜欢你',
+      'artist': '邓紫棋',
+      'album': '喜欢你',
+      'coverUrl': 'https://picsum.photos/seed/rank3/60/60',
+      'trend': 'same',
+      'playCount': 87650000,
+    },
+    {
+      'rank': 4,
+      'title': '星辰大海',
+      'artist': '黄霉',
+      'album': '星辰大海',
+      'coverUrl': 'https://picsum.photos/seed/rank4/60/60',
+      'trend': 'down',
+      'playCount': 76540000,
+    },
+    {
+      'rank': 5,
+      'title': '盗将行',
+      'artist': '花粥',
+      'album': '盗将行',
+      'coverUrl': 'https://picsum.photos/seed/rank5/60/60',
+      'trend': 'up',
+      'playCount': 65430000,
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -907,23 +966,145 @@ class _RankingList extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Container(
-            height: 200,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: const Color(0xFF3A3A3A),
             ),
-            child: const Center(
-              child: Text(
-                '排行榜内容',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _rankings.length,
+              separatorBuilder: (context, index) => const Divider(
+                color: Color(0xFF2A2A2A),
+                height: 1,
               ),
+              itemBuilder: (context, index) {
+                final song = _rankings[index];
+                final rank = song['rank'] as int;
+                
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 排名和趋势
+                      SizedBox(
+                        width: 50,
+                        child: Row(
+                          children: [
+                            // 排名数字
+                            SizedBox(
+                              width: 28,
+                              child: Text(
+                                '$rank',
+                                style: TextStyle(
+                                  color: rank <= 3 ? const Color(0xFFFFD700) : Colors.white70,
+                                  fontSize: rank <= 3 ? 20 : 16,
+                                  fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            // 趋势图标
+                            Icon(
+                              song['trend'] == 'up' ? Icons.arrow_upward :
+                              song['trend'] == 'down' ? Icons.arrow_downward :
+                              Icons.remove,
+                              color: song['trend'] == 'up' ? Colors.red :
+                                     song['trend'] == 'down' ? Colors.green :
+                                     Colors.grey,
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 专辑封面
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network(
+                          song['coverUrl'] as String,
+                          width: 48,
+                          height: 48,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: 48,
+                              height: 48,
+                              color: const Color(0xFF5A5A5A),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 48,
+                              height: 48,
+                              color: const Color(0xFF5A5A5A),
+                              child: const Icon(
+                                Icons.album,
+                                color: Colors.white30,
+                                size: 24,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  title: Text(
+                    song['title'] as String,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    '${song['artist']} - ${song['album']}',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Text(
+                    _formatPlayCount(song['playCount'] as int),
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 11,
+                    ),
+                  ),
+                  onTap: () {
+                    // TODO: 点击播放排行榜歌曲
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatPlayCount(int count) {
+    if (count >= 100000000) {
+      return '${(count / 100000000).toStringAsFixed(1)}亿次';
+    } else if (count >= 10000) {
+      return '${(count / 10000).toStringAsFixed(1)}万次';
+    }
+    return '$count次';
   }
 }
