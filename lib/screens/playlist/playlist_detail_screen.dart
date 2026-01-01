@@ -9,10 +9,10 @@ class PlaylistDetailScreen extends StatelessWidget {
   final List<Song> songs;
 
   const PlaylistDetailScreen({
-    Key? key,
+    super.key,
     required this.playlistName,
     required this.songs,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

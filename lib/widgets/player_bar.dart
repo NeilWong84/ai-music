@@ -5,7 +5,7 @@ import '../models/song.dart';
 import 'animations/player_animation.dart';
 
 class PlayerBar extends StatefulWidget {
-  const PlayerBar({Key? key}) : super(key: key);
+  const PlayerBar({super.key});
 
   @override
   State<PlayerBar> createState() => _PlayerBarState();}
@@ -66,7 +66,7 @@ class _PlayerBarState extends State<PlayerBar> {
                     ),
                     // 播放时显示波形动画
                     if (musicPlayer.playStatus == PlayStatus.playing)
-                      Positioned(
+                      const Positioned(
                         bottom: 2,
                         child: WaveformAnimation(
                           isPlaying: true,

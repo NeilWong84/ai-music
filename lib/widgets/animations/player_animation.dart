@@ -9,13 +9,13 @@ class PlayPauseButton extends StatefulWidget {
   final Color? backgroundColor;
 
   const PlayPauseButton({
-    Key? key,
+    super.key,
     required this.isPlaying,
     required this.onPressed,
     this.size = 60.0,
     this.color,
     this.backgroundColor,
-  }) : super(key: key);
+  });
 
   @override
   State<PlayPauseButton> createState() => _PlayPauseButtonState();
@@ -107,11 +107,11 @@ class RotatingAlbumArt extends StatefulWidget {
   final double size;
 
   const RotatingAlbumArt({
-    Key? key,
+    super.key,
     this.imageUrl,
     required this.isPlaying,
     this.size = 200.0,
-  }) : super(key: key);
+  });
 
   @override
   State<RotatingAlbumArt> createState() => _RotatingAlbumArtState();
@@ -236,12 +236,12 @@ class WaveformAnimation extends StatefulWidget {
   final double height;
 
   const WaveformAnimation({
-    Key? key,
+    super.key,
     required this.isPlaying,
     this.color,
     this.barCount = 5,
     this.height = 40.0,
-  }) : super(key: key);
+  });
 
   @override
   State<WaveformAnimation> createState() => _WaveformAnimationState();
@@ -319,11 +319,11 @@ class PulseRing extends StatefulWidget {
   final Color? color;
 
   const PulseRing({
-    Key? key,
+    super.key,
     required this.isPlaying,
     this.size = 100.0,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<PulseRing> createState() => _PulseRingState();

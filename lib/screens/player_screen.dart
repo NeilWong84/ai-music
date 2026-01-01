@@ -4,7 +4,7 @@ import '../services/music_player.dart';
 import '../models/song.dart';
 
 class PlayerScreen extends StatefulWidget {
-  const PlayerScreen({Key? key}) : super(key: key);
+  const PlayerScreen({super.key});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -186,7 +186,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             Container(
                               width: 60,
                               height: 60,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                               ),

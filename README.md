@@ -31,7 +31,17 @@
 
 应用集成了多个开源免费音乐平台，确保所有歌曲都可以真实播放：
 
-### 1️⃣ **Jamendo Music** ⭐
+### 1️⃣ **SoundHelix** 🎹 ⭐ （新增）
+- ✅ **随机生成**：自动生成的音乐作品
+- ✅ **直接可用**：无需API key，直接访问
+- ✅ **高质量**：专业的音乐生成算法
+- ✅ **多样化**：每首歌都有独特的旋律
+- 🎵 **16首示例**：提供16首预生成的音乐文件
+- 🚀 **快速加载**：无需等待生成，即只即用
+
+**API端点**：`https://www.soundhelix.com/examples/mp3`
+
+### 2️⃣ **Jamendo Music** ⭐
 - ✅ **完全免费**：无需API key，公开访问
 - ✅ **真实可播放**：提供MP3直链
 - ✅ **正版授权**：Creative Commons授权音乐
@@ -42,7 +52,7 @@
 
 **API端点**：`https://api.jamendo.com/v3.0/`
 
-### 2️⃣ **Incompetech (Kevin MacLeod)** 🎼
+### 3️⃣ **Incompetech (Kevin MacLeod)** 🎼
 - ✅ **著名作曲家**：Kevin MacLeod的免费背景音乐库
 - ✅ **广泛使用**：YouTube视频、游戏、影视作品常用
 - ✅ **多种风格**：轻松、欢快、悬疑、史诗等
@@ -52,7 +62,7 @@
 
 **官网**：`https://incompetech.com`
 
-### 3️⃣ **Bensound** 🎹
+### 4️⃣ **Bensound** 🎹
 - ✅ **本地离线数据**：10首精选的Bensound免费音乐
 - ✅ **高质量**：Benjamin Tissot的专业作品
 - ✅ **稳定可靠**：直接从官方CDN加载
@@ -60,12 +70,12 @@
 
 **使用场景**：网络完全失败时的备用方案
 
-### 4️⃣ 数据加载优先级
+### 5️⃣ 数据加载优先级
 
 ```
 缓存检查 (1小时有效期)
     ↓
-混合平台 API ⭐（Jamendo + Incompetech）
+混合平台 API ⭐（SoundHelix + Jamendo + Incompetech）
     ↓
 Bensound 本地数据（离线备用）
 ```
@@ -74,14 +84,16 @@ Bensound 本地数据（离线备用）
 - 🎶 音乐多样化：结合多个平台的优势
 - 🔀 随机混合：自动打乱顺序，提供新鲜体验
 - 🛡️ 高可用性：单个平台失败不影响整体服务
+- 🚀 **快速加载**：SoundHelix 无需网络请求，立即可用
 
 ### 使用示例
 
 ```dart
-// 获取推荐歌曲（自动使用 Jamendo + Incompetech 混合）
+// 获取推荐歌曲（自动使用 SoundHelix + Jamendo + Incompetech 混合）
 final songs = await musicApi.getRecommendSongs(limit: 30);
 
 // 按平台获取音乐
+final soundhelixSongs = await musicApi.getTracksByPlatform('soundhelix', limit: 10);
 final jamendoSongs = await musicApi.getTracksByPlatform('jamendo', limit: 20);
 final incompetechSongs = await musicApi.getTracksByPlatform('incompetech', limit: 10);
 final bensoundSongs = await musicApi.getTracksByPlatform('bensound');
@@ -101,6 +113,7 @@ for (var song in songs) {
 
 ### 音乐授权说明
 
+- **SoundHelix**：随机生成的音乐，免费使用，无需授权
 - **Jamendo**：所有音乐都在 Creative Commons 授权下，允许个人非商业使用
 - **Incompetech (Kevin MacLeod)**：Creative Commons Attribution 授权，使用时需注明："Music by Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0 License"
 - **Bensound**：免费音乐，需要注明作者 Benjamin Tissot / Bensound.com

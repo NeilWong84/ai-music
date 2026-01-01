@@ -9,13 +9,13 @@ class SongItem extends StatelessWidget {
   final VoidCallback? onAddToFavorites;
 
   const SongItem({
-    Key? key,
+    super.key,
     required this.song,
     this.onTap,
     this.onPlayNext,
     this.onAddToPlaylist,
     this.onAddToFavorites,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

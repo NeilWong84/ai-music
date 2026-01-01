@@ -10,7 +10,7 @@ import '../utils/logger.dart';
 
 class MainContent extends StatelessWidget {
   final int index;
-  const MainContent({Key? key, this.index = 0}) : super(key: key);
+  const MainContent({super.key, this.index = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -144,7 +144,7 @@ class MainContent extends StatelessWidget {
                         margin: const EdgeInsets.only(right: 10),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
-                          color: Color(0xFF3A3A3A),
+                          color: const Color(0xFF3A3A3A),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -349,7 +349,7 @@ class MainContent extends StatelessWidget {
 }
 
 class _BannerSection extends StatefulWidget {
-  const _BannerSection({Key? key}) : super(key: key);
+  const _BannerSection({super.key});
 
   @override
   State<_BannerSection> createState() => _BannerSectionState();
@@ -471,7 +471,7 @@ class _BannerSectionState extends State<_BannerSection> {
 }
 
 class _RecommendPlaylists extends StatefulWidget {
-  const _RecommendPlaylists({Key? key}) : super(key: key);
+  const _RecommendPlaylists({super.key});
 
   @override
   State<_RecommendPlaylists> createState() => _RecommendPlaylistsState();
@@ -649,7 +649,7 @@ class _RecommendPlaylistsState extends State<_RecommendPlaylists> {
 }
 
 class _NewMusic extends StatefulWidget {
-  const _NewMusic({Key? key}) : super(key: key);
+  const _NewMusic({super.key});
 
   @override
   State<_NewMusic> createState() => _NewMusicState();
@@ -687,21 +687,34 @@ class _NewMusicState extends State<_NewMusic> {
 
   Future<void> _playSong(Song song) async {
     try {
-      // 获取歌曲详情和播放URL
-      final songDetail = await _apiService.getSongDetail(song.id);
-      if (songDetail != null && songDetail.url.isNotEmpty) {
-        if (mounted) {
-          final player = Provider.of<MusicPlayer>(context, listen: false);
-          // 设置播放列表并播放
-          await player.setPlaylist([songDetail], initialIndex: 0);
-          await player.play();
+      AppLogger.i('🎵 准备播放: ${song.title}');
+      
+      Song? songToPlay = song;
+      
+      // 如果歌曲已经有播放 URL，直接播放
+      if (song.url.isEmpty) {
+        AppLogger.i('ℹ️ 歌曲 URL 为空，尝试获取歌曲详情...');
+        // 获取歌曲详情和播放URL
+        songToPlay = await _apiService.getSongDetail(song.id);
+        if (songToPlay == null || songToPlay.url.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('无法播放该歌曲: ${song.title}')),
+            );
+          }
+          return;
         }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('无法播放该歌曲')),
-          );
-        }
+      }
+      
+      AppLogger.i('✅ 播放 URL: ${songToPlay.url}');
+      
+      if (mounted) {
+        final player = Provider.of<MusicPlayer>(context, listen: false);
+        // 设置播放列表并播放
+        await player.setPlaylist([songToPlay], initialIndex: 0);
+        await player.play();
+        
+        AppLogger.i('🎵 开始播放: ${songToPlay.title}');
       }
     } catch (e) {
       AppLogger.e('播放歌曲失败', e);
@@ -751,101 +764,120 @@ class _NewMusicState extends State<_NewMusic> {
               ),
             )
           else
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _songs.length > 10 ? 10 : _songs.length,
-              itemBuilder: (context, index) {
-                final song = _songs[index];
-                return InkWell(
-                  onTap: () => _playSong(song),
-                  child: Container(
-                    height: 60,
-                    margin: const EdgeInsets.only(bottom: 5),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      color: const Color(0xFF3A3A3A),
-                    ),
-                    child: Row(
-                      children: [
-                        ClipRRect(
+            Consumer<MusicPlayer>(
+              builder: (context, player, child) {
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _songs.length > 10 ? 10 : _songs.length,
+                  itemBuilder: (context, index) {
+                    final song = _songs[index];
+                    final isCurrentSong = player.currentSong?.id == song.id;
+                    final isPlaying = player.playStatus == PlayStatus.playing && isCurrentSong;
+                    
+                    return InkWell(
+                      onTap: () => _playSong(song),
+                      child: Container(
+                        height: 60,
+                        margin: const EdgeInsets.only(bottom: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            song.albumArt.isNotEmpty 
-                                ? song.albumArt 
-                                : 'https://picsum.photos/seed/song$index/50/50',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
+                          color: isCurrentSong 
+                              ? const Color(0xFF4A4A4A) 
+                              : const Color(0xFF3A3A3A),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Image.network(
+                                song.albumArt.isNotEmpty 
+                                    ? song.albumArt 
+                                    : 'https://picsum.photos/seed/song$index/50/50',
                                 width: 50,
                                 height: 50,
-                                color: const Color(0xFF5A5A5A),
-                                child: const Center(
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    width: 50,
+                                    height: 50,
+                                    color: const Color(0xFF5A5A5A),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
                                     ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF5A5A5A),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Icon(
+                                      Icons.music_note,
+                                      color: Colors.white30,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    song.title,
+                                    style: TextStyle(
+                                      color: isCurrentSong 
+                                          ? const Color(0xFF1DB954) 
+                                          : Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: isCurrentSong 
+                                          ? FontWeight.bold 
+                                          : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF5A5A5A),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Icon(
-                                  Icons.music_note,
-                                  color: Colors.white30,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                song.title,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    song.artist,
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                              Text(
-                                song.artist,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                            ),
+                            // 显示播放状态指示器
+                            if (isCurrentSong)
+                              Icon(
+                                isPlaying ? Icons.volume_up : Icons.pause,
+                                color: const Color(0xFF1DB954),
+                                size: 20,
+                              )
+                            else
+                              const SizedBox(width: 20),
+                          ],
                         ),
-                        const Icon(
-                          Icons.play_arrow,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
             ),
@@ -856,7 +888,7 @@ class _NewMusicState extends State<_NewMusic> {
 }
 
 class _RankingList extends StatelessWidget {
-  const _RankingList({Key? key}) : super(key: key);
+  const _RankingList({super.key});
 
   @override
   Widget build(BuildContext context) {

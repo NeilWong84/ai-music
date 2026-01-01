@@ -7,11 +7,11 @@ class LoadingAnimation extends StatefulWidget {
   final String? text;
 
   const LoadingAnimation({
-    Key? key,
+    super.key,
     this.size = 50.0,
     this.color,
     this.text,
-  }) : super(key: key);
+  });
 
   @override
   State<LoadingAnimation> createState() => _LoadingAnimationState();
@@ -124,10 +124,10 @@ class PulseLoadingAnimation extends StatefulWidget {
   final Color? color;
 
   const PulseLoadingAnimation({
-    Key? key,
+    super.key,
     this.size = 50.0,
     this.color,
-  }) : super(key: key);
+  });
 
   @override
   State<PulseLoadingAnimation> createState() => _PulseLoadingAnimationState();
@@ -189,10 +189,10 @@ class DotsLoadingAnimation extends StatefulWidget {
   final double size;
 
   const DotsLoadingAnimation({
-    Key? key,
+    super.key,
     this.color,
     this.size = 10.0,
-  }) : super(key: key);
+  });
 
   @override
   State<DotsLoadingAnimation> createState() => _DotsLoadingAnimationState();

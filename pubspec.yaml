@@ -12,7 +12,8 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   audio_service: ^0.18.8
-  just_audio: ^0.9.34
+  just_audio: ^0.9.40  # 更新到支持 Windows 的版本
+  just_audio_windows: ^0.2.0  # Windows 平台支持
   audio_session: ^0.1.19  # 音频会话管理
   http: ^1.1.0
   provider: ^6.0.5

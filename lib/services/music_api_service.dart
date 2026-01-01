@@ -19,6 +19,9 @@ class MusicApiService {
   // Incompetech (Kevin MacLeod) 音乐库
   // 注意：Incompetech 没有公开API，我们使用预定义的歌曲列表
   
+  // SoundHelix - 随机生成音乐的服务
+  static const String _soundHelixBaseUrl = 'https://www.soundhelix.com/examples/mp3';
+  
   // 请求超时设置
   static const Duration _timeout = Duration(seconds: 10);
   
@@ -189,9 +192,47 @@ class MusicApiService {
   }
 
   /// 获取歌曲详情（包括播放URL）
+  /// 支持多平台：Jamendo, SoundHelix, Incompetech
   Future<Song?> getSongDetail(String songId) async {
     try {
       AppLogger.i('🎵 获取歌曲详情: $songId');
+      
+      // 检查是否为 SoundHelix 歌曲
+      if (songId.startsWith('soundhelix_')) {
+        final index = int.tryParse(songId.replaceFirst('soundhelix_', ''));
+        if (index != null && index >= 1 && index <= 16) {
+          return Song(
+            id: songId,
+            title: 'SoundHelix Song $index',
+            artist: 'SoundHelix Generator',
+            album: 'Random Generated Music',
+            albumArt: 'https://picsum.photos/seed/soundhelix$index/300/300',
+            url: '$_soundHelixBaseUrl/SoundHelix-Song-$index.mp3',
+            duration: const Duration(minutes: 3, seconds: 0),
+            releaseDate: DateTime.now(),
+          );
+        }
+      }
+      
+      // 检查是否为 Incompetech 歌曲
+      if (songId.startsWith('incompetech_')) {
+        final incompetechSongs = await getIncompetechTracks(limit: 30);
+        return incompetechSongs.firstWhere(
+          (song) => song.id == songId,
+          orElse: () => Song(
+            id: songId,
+            title: '未知歌曲',
+            artist: 'Kevin MacLeod',
+            album: 'Incompetech Music',
+            albumArt: 'https://picsum.photos/seed/incompetech/300/300',
+            url: '',
+            duration: Duration.zero,
+            releaseDate: DateTime.now(),
+          ),
+        );
+      }
+      
+      // 默认使用 Jamendo API 获取
       final url = '$_jamendoBaseUrl/tracks/?client_id=$_jamendoClientId&format=json&id=$songId&include=musicinfo&audiodownload=mp31';
       final response = await _requestWithTimeout(url);
 
@@ -355,6 +396,39 @@ class MusicApiService {
     return [];
   }
 
+  /// 获取 SoundHelix 随机生成的音乐
+  /// SoundHelix 可以生成随机的音乐作品
+  Future<List<Song>> getSoundHelixTracks({int limit = 10}) async {
+    try {
+      AppLogger.i('🎵 获取 SoundHelix 随机音乐...');
+      
+      // SoundHelix 提供预生成的音乐文件
+      final soundHelixSongs = <Song>[];
+      
+      // SoundHelix 有多个预生成的音乐示例（编号从 SoundHelix-Song-1 到 SoundHelix-Song-16）
+      for (int i = 1; i <= limit && i <= 16; i++) {
+        soundHelixSongs.add(
+          Song(
+            id: 'soundhelix_$i',
+            title: 'SoundHelix Song $i',
+            artist: 'SoundHelix Generator',
+            album: 'Random Generated Music',
+            albumArt: 'https://picsum.photos/seed/soundhelix$i/300/300',
+            url: '$_soundHelixBaseUrl/SoundHelix-Song-$i.mp3',
+            duration: const Duration(minutes: 3, seconds: 0),
+            releaseDate: DateTime.now(),
+          ),
+        );
+      }
+      
+      AppLogger.i('✅ 成功生成 ${soundHelixSongs.length} 首 SoundHelix 音乐');
+      return soundHelixSongs;
+    } catch (e) {
+      AppLogger.e('获取 SoundHelix 音乐失败: $e');
+    }
+    return [];
+  }
+
   /// 获取 Incompetech (Kevin MacLeod) 免费背景音乐
   /// Kevin MacLeod 是著名的免费音乐作曲家
   Future<List<Song>> getIncompetechTracks({int limit = 30}) async {
@@ -479,9 +553,20 @@ class MusicApiService {
     
     List<Song> allSongs = [];
     
-    // 1. 从 Jamendo 获取
+    // 1. 从 SoundHelix 获取（优先，因为直接可用）
     try {
-      final jamendoSongs = await getJamendoTracks(limit: 20);
+      final soundHelixSongs = await getSoundHelixTracks(limit: 10);
+      if (soundHelixSongs.isNotEmpty) {
+        AppLogger.i('✅ SoundHelix: ${soundHelixSongs.length} 首');
+        allSongs.addAll(soundHelixSongs);
+      }
+    } catch (e) {
+      AppLogger.w('⚠️ SoundHelix 加载失败: $e');
+    }
+    
+    // 2. 从 Jamendo 获取
+    try {
+      final jamendoSongs = await getJamendoTracks(limit: 15);
       if (jamendoSongs.isNotEmpty) {
         AppLogger.i('✅ Jamendo: ${jamendoSongs.length} 首');
         allSongs.addAll(jamendoSongs);
@@ -490,7 +575,7 @@ class MusicApiService {
       AppLogger.w('⚠️ Jamendo 请求失败: $e');
     }
     
-    // 2. 从 Incompetech 获取
+    // 3. 从 Incompetech 获取
     try {
       final incompetechSongs = await getIncompetechTracks(limit: 10);
       if (incompetechSongs.isNotEmpty) {
@@ -501,13 +586,13 @@ class MusicApiService {
       AppLogger.w('⚠️ Incompetech 加载失败: $e');
     }
     
-    // 3. 如果所有平台都失败，使用 Bensound 本地数据
+    // 4. 如果所有平台都失败，使用 Bensound 本地数据
     if (allSongs.isEmpty) {
       AppLogger.w('💾 使用 Bensound 本地数据');
       allSongs = MockMusicService.getMockRecommendSongs();
     }
     
-    // 4. 打乱顺序，提供多样化体验
+    // 5. 打乱顺序，提供多样化体验
     allSongs.shuffle();
     
     AppLogger.i('✅ 总计获取 ${allSongs.length} 首歌曲');
@@ -517,6 +602,8 @@ class MusicApiService {
   /// 根据平台获取音乐
   Future<List<Song>> getTracksByPlatform(String platform, {int limit = 30}) async {
     switch (platform.toLowerCase()) {
+      case 'soundhelix':
+        return await getSoundHelixTracks(limit: limit);
       case 'jamendo':
         return await getJamendoTracks(limit: limit);
       case 'incompetech':
@@ -528,8 +615,8 @@ class MusicApiService {
       case 'all':
         return await getMixedPlatformTracks(limit: limit);
       default:
-        AppLogger.w('⚠️ 未知平台: $platform，使用 Jamendo');
-        return await getJamendoTracks(limit: limit);
+        AppLogger.w('⚠️ 未知平台: $platform，使用 SoundHelix');
+        return await getSoundHelixTracks(limit: limit);
     }
   }
 }
